@@ -1,0 +1,26 @@
+{
+  "name": "lixian-portal",
+  "version": "0.0.31",
+  "description": "lixian-portal =============",
+  "dependencies": {
+    "iced-coffee-script": ">1.4.0",
+    "express": "~3.1.0",
+    "jade": "~0.28.2",
+    "lazy": "~1.0.9"
+  },
+  "bin": {
+    "lixian-portal": "./bin/lixian-portal"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "main": "bin/lixian-portal",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/layerssss/lixian-portal.git"
+  },
+  "author": "Michael Yin",
+  "license": "BSD",
+  "readmeFilename": "README.md",
+  "gitHead": "6bdc29c4643ed1bc9e540ad481e2693018f748c9"
+}

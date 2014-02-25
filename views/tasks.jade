@@ -1,0 +1,60 @@
+extends layout
+block content
+  form.form-inline(method='post',action='/', enctype='multipart/form-data',style='margin-bottom: 0.5em;')
+    .pull-right
+      .btn-group
+        a.btn.btn-info(href='/') 
+          i.icon-refresh
+          |刷新
+        a.btn.btn-danger(href='/logout') 
+          i.icon-signout
+          |登出
+    .form-group.url
+      input.form-control.input-xxlarge(name='url',type='text',placeholder='url')
+    .form-group.url(style='display: none;')
+      input(name='bt',type='file',placeholder='.torrent')
+    .form-group
+      button.btn.btn-primary(type='submit') 
+        i.icon-plus
+        |添加
+    label
+      input(name='bt',type='checkbox',accept='*/torrent',onclick='$(".url").toggle()')
+      | BT任务
+  table.table
+    tr
+      th 任务状态
+      th 取回状态
+      th 文件名
+      th 操作
+    for task in info.stats.tasks
+      tr(class=task.status)
+        td=task.statusLabel
+        td
+          if info.stats.retrieving && info.stats.retrieving.task.id == task.id
+            .label.label-info 正在取回(#{info.stats.progress} 预计剩余时间：#{info.stats.time})
+          if info.stats.error[task.id]
+            .label.label-error(title=info.stats.error[task.id]) 错误
+        td=task.filename
+        td
+          .btn-toolbar(style='margin:0;')
+            .btn-group
+              a.btn-mini.btn.btn-danger(href='/tasks/#{task.id}?_method=delete') 删除
+  #accordion2.panel-group
+    .panel.panel-default
+      .panel-heading
+        .panel-title
+          a.accordion-toggle(data-toggle='collapse', data-parent='#accordion2', href='#collapseOne')
+            | 任务队列
+      #collapseOne.panel-body.collapse.in
+        .panel-inner
+          ul
+            for item in info.queue
+              li=item.name
+    .panel.panel-default
+      .panel-heading
+        .panel-title
+          a.accordion-toggle(data-toggle='collapse', data-parent='#accordion2', href='#collapseTwo')
+            | 任务日志
+      #collapseTwo.panel-body.collapse
+        .panel-inner
+          pre=info.log.join('\n')

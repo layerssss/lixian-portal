@@ -1,0 +1,18 @@
+extends layout
+block content
+  form.form-inline(method='post',action='/login',role='form')
+    .form-group
+      label.sr-only 用户名
+      input.form-control(name='username',type='text',placeholder='用户名 / 邮箱',value=info.stats.username||'')
+    .form-group
+      label.sr-only 密码
+      input.form-control(name='password',type='password',placeholder='密码',value=info.stats.password||'')
+    if info.stats.requireVerificationCode
+      .form-group
+        input.form-control(name='vcode',type='text',placeholder='验证码')
+      .form-group
+        img(src="data:image/jpeg;base64,#{info.stats.requireVerificationCode}")
+    .form-group
+      button.btn.btn-primary(type='submit') 
+        i.icon-signin
+        |登陆
