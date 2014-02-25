@@ -22,13 +22,13 @@ lixian-portal
 
 # 环境
 
-* linux/osx （对不起了windows）
+* linux/osx （如果你想用windows来做下载服务器，你得先在windows上安装好wget）
 * python2
 * nodejs
 
 # 安装方法
 
-* 下载安装包并解压缩
+* 下载代码并解压缩
 * 运行命令启动`node /path/to/lixian-portal` 
 * 下载的位置为启动这个程序的目录(Current Working Directory)
 
