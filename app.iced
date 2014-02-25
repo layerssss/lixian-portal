@@ -57,8 +57,8 @@ app.post '/login', (req, res, n)->
   return n e if e
   res.redirect '/'
 app.get '/logout', (req, res, n)-> 
-  client.stats.requireLogin = true
-  client.queue.tasks.logout()
+  await client.queue.tasks.logout defer e
+  return n e if e
   res.redirect '/'
 
 app.delete '/tasks/:id', (req, res, n)->

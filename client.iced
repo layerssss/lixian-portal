@@ -141,41 +141,57 @@ queue.tasks =
   login: (username, password, vcode, cb)->
     await getPythonBin defer e, pyothon_bin
     return cb e if e
-    console.log vcode
-    if vcode
-      await exec "#{pyothon_bin} #{cli} login #{username} #{password} --verification-code-input=#{vcode}", cwd: workingDirectory, defer e, out, err
+    vcode_path = (path.join workingDirectory, ".lixian-portal-vcode.jpg")
+    if vcode and stats.login_process?
+      console.log "vcode: #{vcode}"
+      stats.login_process.stdin.write vcode
+      stats.login_process.stdin.write "\r\n"
+      await stats.login_process.on 'exit', defer @login_result
     else
-      await exec "#{pyothon_bin} #{cli} login #{username} #{password} --verification-code-path .lixian-portal-vcode.jpg --verification-code-input-later", cwd: workingDirectory, defer e, out, err
-      console.log out
-      if e && out.match /--verification-code-input/
-        await fs.readFile (path.join workingDirectory, ".lixian-portal-vcode.jpg"), defer e, stats.requireVerificationCode
-        return cb e if e
-        stats.requireVerificationCode = stats.requireVerificationCode.toString 'base64'
-        stats.username = username
-        stats.password = password
+      await fs.unlink vcode_path, defer e
+      @login_output = ""
+      stats.login_process = spawn pyothon_bin, [
+        cli
+        "login"
+        username
+        password
+        "--verification-code-path"
+        vcode_path
+      ]
+      stats.login_process.on 'exit', (@login_result)=> 
+        console.log "login exited #{@login_result}"
+        stats.login_process = null
+      stats.login_process.stdout.on 'data', (data)=> @login_output+= data.toString 'utf8' 
+      stats.login_process.stderr.on 'data', (data)=> @login_output+= data.toString 'utf8' 
+      stats.login_process.stdin.setEncoding 'utf8'
+      lixian_code_fetched = false
+      while stats.login_process && !lixian_code_fetched
+        await setTimeout defer(), 100 
+        await fs.exists vcode_path, defer lixian_code_fetched
+      if lixian_code_fetched
+        e = true
+        while e
+          await setTimeout defer(), 100
+          await fs.readFile vcode_path, 'base64', defer e, stats.requireVerificationCode
         return cb null
-    if e
-      stats.requireVerificationCode = null
-      stats.username = ''
-      stats.password = ''
-      return cb new Error '登录失败'
-
-    stats.requireLogin = false
-    stats.requireVerificationCode = null
-    stats.password = ''
-    stats.username = ''
-    queue.tasks.updateTasklist()
-    cb null
+    if @login_result == 0
+      stats.requireLogin = false 
+      queue.tasks.updateTasklist()
+      cb null
+    else
+      console.error @login_output
+      @login_output = @login_output.match(/^[\w]+\:\s(.*)$/m)?[1]
+      @login_output = "用户名、密码或者验证码错误" if @login_output?.match /login failed/
+      cb new Error "登录失败: \n\n#{@login_output}"
+    
         
-  logout: (username, password)->
-    queue.append
-      name: "登出"
-      func: (cb)->
-        await getPythonBin defer e, pyothon_bin
-        return cb e if e
-        await exec "#{pyothon_bin} #{cli} logout", cwd: workingDirectory, defer e, out, err
-        queue.tasks.updateTasklist()
-        cb null
+  logout: (cb)->
+    await getPythonBin defer e, pyothon_bin
+    return cb e if e
+    await exec "#{pyothon_bin} #{cli} logout", cwd: workingDirectory, defer e, out, err
+    await fs.unlink path.join(workingDirectory, '.xunlei.lixian.cookies'), defer e
+    stats.requireLogin = true
+    cb null
 
   addBtTask: (filename, torrent)->
     queue.append
