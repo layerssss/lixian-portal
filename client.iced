@@ -145,8 +145,9 @@ queue.tasks =
     if vcode and stats.login_process?
       console.log "vcode: #{vcode}"
       stats.login_process.stdin.write vcode
-      stats.login_process.stdin.write "\r\n"
-      await stats.login_process.on 'exit', defer @login_result
+      stats.login_process.stdin.write "\n"
+      await stats.login_process.on 'exit', defer code
+      @login_result = code
     else
       await fs.unlink vcode_path, defer e
       @login_output = ""
@@ -158,7 +159,8 @@ queue.tasks =
         "--verification-code-path"
         vcode_path
       ], cwd: workingDirectory
-      stats.login_process.on 'exit', (@login_result)=> 
+      stats.login_process.on 'exit', (code)=> 
+        @login_result = code
         console.log "login exited #{@login_result}"
         stats.login_process = null
       stats.login_process.stdout.on 'data', (data)=> @login_output+= data.toString 'utf8' 
