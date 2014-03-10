@@ -13,7 +13,8 @@
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "fetch-xunlei-lixian": "rm -Rf xunlei-lixian && mkdir xunlei-lixian && curl -L https://github.com/iambus/xunlei-lixian/archive/master.tar.gz | tar -xz --strip-component 1 -C xunlei-lixian"
+    "fetch-xunlei-lixian": "rm -Rf xunlei-lixian && mkdir xunlei-lixian && curl -L https://github.com/iambus/xunlei-lixian/archive/master.tar.gz | tar -xz --strip-component 1 -C xunlei-lixian",
+    "start": "node index.js"
   },
   "main": "bin/lixian-portal",
   "repository": {
