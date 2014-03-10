@@ -3,6 +3,11 @@ http = require 'http'
 path = require 'path'
 fs = require 'fs'
 client = require './client'
+{
+  exec
+  execFile
+  spawn
+} = require 'child_process'
 
 app = express favicon: false
 app.locals.info = client = require './client'
@@ -74,7 +79,21 @@ app.use (e, req, res, next)->
 await client.init defer e
 throw e if e
 
-(server = http.createServer app).listen (Number process.env.PORT or 3000), ->
+port = process.env.PORT || 3000
+if isNaN Number port
+  await exec "fuser #{port}", defer e
+  throw new Error "#{port} already owned by another process" unless e
+  await fs.unlink port, defer e
+
+  await (server = http.createServer app).listen port, defer e
+  throw e if e
+  console.log "portal ready on unix://#{port}"
+
+  await fs.chmod port, '0777', defer e
+  throw e if e
+else
+  await (server = http.createServer app).listen (Number port), defer e
+  throw e if e
   address = server.address().address
-  address = '127.0.0.1' if address == '0.0.0.0'
-  console.log "portal ready on http://#{address}:#{server.address().port}/"
+  address = '*' if address == '0.0.0.0'
+  console.log "portal ready on http://#{address}:#{port}/"
