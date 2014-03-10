@@ -31,6 +31,7 @@ lixian-portal
 * 下载代码并解压缩
 * 运行命令启动`node /path/to/lixian-portal` 
 * 下载的位置为启动这个程序的目录(Current Working Directory)
+* 如需下载到其他位置，可以设置环境变量`LIXIAN_PORTAL_HOME`，例如：可以这样启动程序`LIXIAN_PORTAL_HOME=/mnt/sdb1 node /path/to/lixan-portal`
 
 # Tricks
 

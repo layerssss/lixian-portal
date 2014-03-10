@@ -39,7 +39,7 @@ exports.stats = stats =
 exports.queue = queue = []
 exports.log = log = []
 
-workingDirectory = process.cwd()
+workingDirectory = process.env.LIXIAN_PORTAL_HOME || process.cwd()
 process.env.HOME = workingDirectory
 
 queue.append = (task)->
@@ -157,7 +157,7 @@ queue.tasks =
         password
         "--verification-code-path"
         vcode_path
-      ]
+      ], cwd: workingDirectory
       stats.login_process.on 'exit', (@login_result)=> 
         console.log "login exited #{@login_result}"
         stats.login_process = null
