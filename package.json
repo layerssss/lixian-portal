@@ -1,6 +1,6 @@
 {
   "name": "lixian-portal",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "lixian-portal =============",
   "dependencies": {
     "iced-coffee-script": ">1.4.0",

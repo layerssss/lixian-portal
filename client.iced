@@ -52,8 +52,10 @@ exports.startCron = ->
     if queue.length
       stats.task = queue.shift()
       log.unshift  "#{stats.task.name} 启动"
+      console.log log[log.length - 1]
       await stats.task.func defer e
       log.unshift "#{stats.task.name} 完成"
+      console.log log[log.length - 1]
       if e
         log.unshift e.message
         console.error e.message
@@ -73,70 +75,71 @@ getPythonBin = (cb)->
 
 
 queue.tasks = 
-  retrieve: (task)->
-    queue.append 
-      name: "取回 #{task.id}"
-      func: (cb)->
-        await getPythonBin defer e, pyothon_bin
-        return cb e if e
-        stats.retrieving = spawn pyothon_bin, [cli, 'download', '--continue', '--no-hash', task.id], stdio: 'pipe', cwd: workingDirectory
-        errBuffer = []
-        stats.retrieving.task = task
-        new lazy(stats.retrieving.stderr).lines.forEach (line)->
-          line ?= []
-          line = line.toString 'utf8'
-          errBuffer.push line
-          line = line.match /\s+(\d?\d%)\s+([^ ]{1,10})\s+([^ ]{1,10})\r?\n?$/
-          [dummy, stats.progress, stats.speed, stats.time] = line if line
+  retrieve: (task, cb)->
+    await getPythonBin defer e, pyothon_bin
+    return cb e if e
+    stats.retrieving = spawn pyothon_bin, [cli, 'download', '--continue', '--no-hash', task.id], stdio: 'pipe', cwd: workingDirectory
+    errBuffer = []
+    stats.retrieving.task = task
+    new lazy(stats.retrieving.stderr).lines.forEach (line)->
+      line ?= []
+      line = line.toString 'utf8'
+      errBuffer.push line
+      line = line.match /\s+(\d?\d%)\s+([^ ]{1,10})\s+([^ ]{1,10})\r?\n?$/
+      [dummy, stats.progress, stats.speed, stats.time] = line if line
 
-        await stats.retrieving.on 'exit', defer e
-        if e
-          stats.error[task.id] = errBuffer.join ''
-        stats.retrieving = null
-        queue.tasks.updateTasklist()
-        queue.tasks.deleteTask(task.id)
-        cb()
+    await stats.retrieving.on 'exit', defer e
+    if e
+      stats.error[task.id] = errBuffer.join ''
+    stats.retrieving = null
+    queue.append
+      name: "刷新任务列表"
+      func: queue.tasks.updateTasklist
+    queue.append
+      name: "删除任务 #{task.id}"
+      func: (fcb)->
+        queue.tasks.deleteTask task.id, fcb
+    cb()
   
 
-  updateTasklist: ->
-    queue.prepend
-      name: '刷新任务列表'
-      func: (cb)->
-        await getPythonBin defer e, pyothon_bin
-        return cb e if e
-        await exec "#{pyothon_bin} #{cli} config encoding utf-8", cwd: workingDirectory, defer e
-        return cb e if e
-        await exec "#{pyothon_bin} #{cli} list --no-colors", cwd: workingDirectory, defer e, out, err
-        if e && err.match /user is not logged in|Verification code required/
-          stats.requireLogin = true
-          return cb e
-        return cb e if e
-        _tasks = []
-        if out.match regexMG 
-          for task in out.match regexMG
-            task = task.match regexQ
-            _tasks.push
-              id: task[1]
-              filename: task[2]
-              status: statusMap[task[3]]
-              statusLabel: statusMapLabel[task[3]]
+  updateTasklist: (cb)->
+    await getPythonBin defer e, pyothon_bin
+    return cb e if e
+    await exec "#{pyothon_bin} #{cli} config encoding utf-8", cwd: workingDirectory, defer e
+    return cb e if e
+    await exec "#{pyothon_bin} #{cli} list --no-colors", cwd: workingDirectory, defer e, out, err
+    if e && err.match /user is not logged in|Verification code required/
+      stats.requireLogin = true
+      return cb e
+    return cb e if e
+    _tasks = []
+    if out.match regexMG 
+      for task in out.match regexMG
+        task = task.match regexQ
+        _tasks.push
+          id: task[1]
+          filename: task[2]
+          status: statusMap[task[3]]
+          statusLabel: statusMapLabel[task[3]]
 
-        stats.tasks = _tasks
-        
-        for task in _tasks
-          if task.status=='success' && !stats.error[task.id]?
-            queue.tasks.retrieve task
-        cb()
-  deleteTask: (id)->
-    queue.prepend
-      name: "删除任务 #{id}"
-      func: (cb)->
-        await getPythonBin defer e, pyothon_bin
-        return cb e if e
-        await exec "#{pyothon_bin} #{cli} delete #{id}", cwd: workingDirectory, defer e, out, err
-        return cb e if e
-        queue.tasks.updateTasklist()
-        cb null
+    stats.tasks = _tasks
+    
+    for task in _tasks
+      if task.status=='success' && !stats.error[task.id]?
+        queue.append
+          name: "取回 #{task.id}"
+          func: (fcb)->
+            queue.tasks.retrieve task, fcb
+    cb()
+  deleteTask: (id, cb)->
+    await getPythonBin defer e, pyothon_bin
+    return cb e if e
+    await exec "#{pyothon_bin} #{cli} delete #{id}", cwd: workingDirectory, defer e, out, err
+    return cb e if e
+    queue.append
+      name: "刷新任务列表"
+      func: queue.tasks.updateTasklist
+    cb null
 
   login: (username, password, vcode, cb)->
     await getPythonBin defer e, pyothon_bin
@@ -178,7 +181,9 @@ queue.tasks =
         return cb null
     if @login_result == 0
       stats.requireLogin = false 
-      queue.tasks.updateTasklist()
+      queue.append
+        name: "刷新任务列表"
+        func: queue.tasks.updateTasklist
       cb null
     else
       console.error @login_output
@@ -195,25 +200,21 @@ queue.tasks =
     stats.requireLogin = true
     cb null
 
-  addBtTask: (filename, torrent)->
-    queue.append
-      name: "添加bt任务 #{filename}"
-      func: (cb)->
-        await getPythonBin defer e, pyothon_bin
-        return cb e if e
-        await exec "#{pyothon_bin} #{cli} add #{torrent}", cwd: workingDirectory, defer e, out, err
-        return cb e if e
-        queue.tasks.updateTasklist()
-        cb null
-  addTask: (url)->
-    queue.append
-      name: "添加任务 #{url}"
-      func: (cb)->
-        await getPythonBin defer e, pyothon_bin
-        return cb e if e
-        await exec "#{pyothon_bin} #{cli} add \"#{url}\"", cwd: workingDirectory, defer e, out, err
-        return cb e if e
-        queue.tasks.updateTasklist()
-        cb null
+  addBtTask: (filename, torrent, cb)->
+    await getPythonBin defer e, pyothon_bin
+    return cb e if e
+    await exec "#{pyothon_bin} #{cli} add #{torrent}", cwd: workingDirectory, defer e, out, err
+    return cb e if e
+    await queue.tasks.updateTasklist defer e
+    return cb e if e
+    cb null
+  addTask: (url, cb)->
+    await getPythonBin defer e, pyothon_bin
+    return cb e if e
+    await exec "#{pyothon_bin} #{cli} add \"#{url}\"", cwd: workingDirectory, defer e, out, err
+    return cb e if e
+    await queue.tasks.updateTasklist defer e
+    return cb e if e
+    cb null
 
 

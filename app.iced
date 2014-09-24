@@ -22,8 +22,11 @@ app.use (req, res, next)->
 app.use express.methodOverride()
 
 client.startCron()
+queue = client.queue
 autorefresh = ->
-  client.queue.tasks.updateTasklist()
+  queue.append
+    name: "刷新任务列表"
+    func: queue.tasks.updateTasklist
   setTimeout autorefresh, 60000 * (1 + Math.random() * 3)
 autorefresh()
 
@@ -41,35 +44,43 @@ app.all '*', (req, res, n)->
   return n 403 if process.env.ONLYFROM && -1 == process.env.ONLYFROM.indexOf ip
   n null
 app.post '/refresh', (req, res, n)->
-  client.queue.tasks.updateTasklist()
+
+  queue.append
+    name: "刷新任务列表"
+    func: queue.tasks.updateTasklist
   res.redirect 'back'
 
 app.post '/', (req, res, n)->
   if req.files && req.files.bt && req.files.bt.path && req.files.bt.length
     bt = req.files.bt
     await fs.rename bt.path, "#{bt.path}.torrent", defer e 
-    return cb e if e
-    client.queue.tasks.addBtTask bt.name, "#{bt.path}.torrent"
+    return n e if e
+    await queue.tasks.addBtTask bt.name, "#{bt.path}.torrent", defer e
+    return n e if e
   else
-    client.queue.tasks.addTask req.body.url
+    await queue.tasks.addTask req.body.url, defer e
+    return n e if e
   res.redirect '/'
 
 app.get '/login', (req, res)-> 
   res.locals.vcode = null
   res.render 'login'
 app.post '/login', (req, res, n)-> 
-  await client.queue.tasks.login req.body.username, req.body.password, req.body.vcode, defer e
+  await queue.tasks.login req.body.username, req.body.password, req.body.vcode, defer e
   return n e if e
   res.redirect '/'
 app.get '/logout', (req, res, n)-> 
-  await client.queue.tasks.logout defer e
+  await queue.tasks.logout defer e
   return n e if e
   res.redirect '/'
 
 app.delete '/tasks/:id', (req, res, n)->
   if client.stats.retrieving?.task.id
     client.stats.retrieving.kill()
-  client.queue.tasks.deleteTask req.params.id
+  queue.append
+    name: "删除任务 #{task.id}"
+    func: (fcb)->
+      queue.tasks.deleteTask req.params.id, fcb
   res.redirect '/'
         
 
