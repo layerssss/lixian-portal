@@ -16,9 +16,10 @@ lixian-portal
 
 # 界面预览
 
-![http://ww3.sinaimg.cn/large/7a464815jw1e5klmtnyu6j20zk0m8my3.jpg](http://ww3.sinaimg.cn/large/7a464815jw1e5klmtnyu6j20zk0m8my3.jpg)
+![qq20140929-1](https://cloud.githubusercontent.com/assets/1559832/4437710/10a2f2d4-479e-11e4-888f-eae2f34b5bff.png)
 
-![http://ww3.sinaimg.cn/large/7a464815jw1e5kln13fotj20zk0m8myv.jpg](http://ww3.sinaimg.cn/large/7a464815jw1e5kln13fotj20zk0m8myv.jpg)
+![qq20140929-2](https://cloud.githubusercontent.com/assets/1559832/4437711/1110e618-479e-11e4-8885-b28024c6864d.png)
+
 
 # 环境
 
