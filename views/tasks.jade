@@ -19,7 +19,6 @@ block content
       ul
         for executing in info.stats.executings
           li #{executing} 
-
     if info.stats.retrieving
       h6 取回速度: #{info.stats.retrieving.format.speed(info.stats.retrieving.progress.speed)}
   form.form-inline(method='post',action='/', enctype='multipart/form-data',style='margin-bottom: 0.5em;')

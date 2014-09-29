@@ -29,7 +29,7 @@ retrieves = []
 exports.startCron = ->
   while true
     if retrieve = retrieves.shift()
-      await queue.execute 'retrieve', retrieve.task, retrieve.file, defer e
+      await queue.execute 'retrieve', retrieve.task, defer e
       stats.retrieving = null
     await setTimeout defer(), 100
 
@@ -50,7 +50,7 @@ exports.init = (cb)->
 stats.executings = []
 queue.execute = (command, args..., cb)=>
   commands = 
-    retrieve: (task, file)-> "取回文件 #{task.name}/#{file.name}"
+    retrieve: (task)-> "取回任务 #{task.name}"
     deleteTask: (id)-> "删除任务 #{id}"
     updateTasklist: -> "刷新任务列表"
     addTask: (url)-> "添加任务 #{url}"
@@ -79,34 +79,36 @@ queue.execute = (command, args..., cb)=>
 
 
 queue.tasks = 
-  retrieve: (task, file, cb)->
+  retrieve: (task, cb)->
     await mkdirp (path.join cwd, task.name), defer e
     return cb e if e
-    req = request
-      url: file.url
-      headers:
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-        'Cookie': stats.cookie
-        'Referer': 'http://dynamic.cloud.vip.xunlei.com/user_task'
-        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
-        'Accept-Language': 'zh-CN,zh;q=0.8,it-IT;q=0.6,it;q=0.4,en-US;q=0.2,en;q=0.2'
-      proxy: process.env['http_proxy']
-    writer = fs.createWriteStream path.join cwd, task.name, file.name
-    await req.on 'response', defer res
-    fileSize = Number res.headers['content-length']
-    return cb new Error "Invalid Content-Length" if isNaN fileSize
-    statusBar = StatusBar.create total: fileSize
-    statusBar.on 'render', (progress)->
-      stats.retrieving = 
-        req: req
-        progress: progress 
-        task: task
-        file: file
-        format: statusBar.format
-    req.pipe statusBar
-    req.pipe writer
-    await writer.on 'close', defer()
-    statusBar.cancel()
+    for file in task.files
+      req = request
+        url: file.url
+        headers:
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+          'Cookie': stats.cookie
+          'Referer': 'http://dynamic.cloud.vip.xunlei.com/user_task'
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
+          'Accept-Language': 'zh-CN,zh;q=0.8,it-IT;q=0.6,it;q=0.4,en-US;q=0.2,en;q=0.2'
+        proxy: process.env['http_proxy']
+      writer = fs.createWriteStream path.join cwd, task.name, file.name
+      await req.on 'response', defer res
+      fileSize = Number res.headers['content-length']
+      return cb new Error "Invalid Content-Length" if isNaN fileSize
+      statusBar = StatusBar.create total: fileSize
+      statusBar.on 'render', (progress)->
+        stats.retrieving = 
+          req: req
+          progress: progress 
+          task: task
+          file: file
+          format: statusBar.format
+      req.pipe statusBar
+      req.pipe writer
+      await writer.on 'close', defer()
+      statusBar.cancel()
+      return cb new Error '任务已删除' if req._aborted
 
     await queue.execute 'deleteTask', task.id, defer e
     
@@ -124,10 +126,9 @@ queue.tasks =
         if file.url
           file.status = 'success'
           file.statusLabel = '就绪'
-          unless retrieves.filter((r)-> r.task.id == task.id && r.file.name == file.name).length
+          unless retrieves.filter((r)-> r.task.id == task.id).length
             retrieves.push
               task: task
-              file: file
     cb()
   deleteTask: (id, cb)->
     if stats.retrieving?.task.id == id
