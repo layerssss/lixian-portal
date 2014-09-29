@@ -20,10 +20,29 @@ app.use (req, res, next)->
   next()
 app.use express.methodOverride()
 
+vcodeReqs = []
+
+await client.init defer e
+throw e if e
+
 client.startCron()
 queue = client.queue
+queue.lixian.vcodeHandler = (vcodeData, cb)->
+  vcodeReqs.push 
+    data: vcodeData
+    cb: cb
+
+app.get '/vcode', (req, res, n)->
+  return res.end '' unless vcodeReqs[0]
+  res.end vcodeReqs[0].data
+app.post '/vcode', (req, res, n)->
+  vcodeReqs.shift().cb null, req.body.vcode
+  res.end ''
+
 
 app.get '/', (req, res, n)->
+  res.render 'frame'
+app.get '/iframe', (req, res, n)->
   return res.redirect '/login' if client.stats.requireLogin
   while client.log.length > 100
     client.log.pop()
@@ -69,8 +88,6 @@ app.delete '/tasks/:id', (req, res, n)->
 app.use (e, req, res, next)->
   res.render 'error',
     error: e
-await client.init defer e
-throw e if e
 
 autorefresh = ->
   await queue.execute 'updateTasklist', defer(e)

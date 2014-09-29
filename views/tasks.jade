@@ -3,7 +3,7 @@ block content
   script.
     $(function(){
       var fn = function(){
-        $.get('.', function(data){
+        $.get('', function(data){
           $('#stats').html($('#stats', data).html());
           $('#tasks').html($('#tasks', data).html());
           $('#queue').html($('#queue', data).html());
@@ -66,8 +66,8 @@ block content
       #queue.panel-body.collapse.in
         .panel-inner
           ul
-            for item in info.queue
-              li=item.name
+            for retrieve in info.stats.retrieves
+              li=retrieve.task.name
     .panel.panel-default
       .panel-heading
         .panel-title

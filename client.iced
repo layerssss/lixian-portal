@@ -19,16 +19,17 @@ exports.stats = stats =
   password: ''
   username: ''
 
-exports.queue = queue = []
+stats.retrieves = []
 exports.log = log = []
+exports.queue = queue = {}
 
 cwd = process.env.LIXIAN_PORTAL_HOME || process.cwd()
 
-retrieves = []
+
 
 exports.startCron = ->
   while true
-    if retrieve = retrieves.shift()
+    if retrieve = stats.retrieves.shift()
       await queue.execute 'retrieve', retrieve.task, defer e
       stats.retrieving = null
     await setTimeout defer(), 100
@@ -48,6 +49,7 @@ exports.init = (cb)->
   cb null
 
 stats.executings = []
+queue.lixian = lixian
 queue.execute = (command, args..., cb)=>
   commands = 
     retrieve: (task)-> "取回任务 #{task.name}"
@@ -126,14 +128,14 @@ queue.tasks =
         if file.url
           file.status = 'success'
           file.statusLabel = '就绪'
-          unless retrieves.filter((r)-> r.task.id == task.id).length
-            retrieves.push
+          unless stats.retrieves.filter((r)-> r.task.id == task.id).length
+            stats.retrieves.push
               task: task
     cb()
   deleteTask: (id, cb)->
     if stats.retrieving?.task.id == id
       stats.retrieving.req.abort()
-    retrieves = retrieves.filter (retrieve)-> retrieve.task.id != id
+    stats.retrieves = stats.retrieves.filter (retrieve)-> retrieve.task.id != id
 
     await lixian.delete_task delete: id, defer e
     return cb e if e
