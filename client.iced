@@ -1,29 +1,12 @@
 
 path = require 'path'
 fs = require 'fs'
-lazy = require 'lazy'
+mkdirp = require 'mkdirp'
+request = require 'request'
+StatusBar = require 'status-bar'
 
-cli = path.join __dirname, 'xunlei-lixian', 'lixian_cli.py'
-
-{
-  exec
-  execFile
-  spawn
-} = require 'child_process'
-
-statusMap = 
-  completed: 'success'
-  failed: 'error'
-  waiting: 'warn'
-  downloading: 'info'
-statusMapLabel = 
-  completed: '完成'
-  failed: '失败'
-  waiting: '等待'
-  downloading: '下载中'
-
-regexMG = /^([^ ]+) +(.+) +(completed|downloading|waiting|failed) *(http\:\/\/.+)?$/mg
-regexQ = /^([^ ]+) +(.+) +(completed|downloading|waiting|failed) *(http\:\/\/.+)?$/m
+Lixian = require 'node-lixian'
+lixian = new Lixian()
 
 exports.stats = stats = 
   task: null
@@ -39,181 +22,146 @@ exports.stats = stats =
 exports.queue = queue = []
 exports.log = log = []
 
-workingDirectory = process.env.LIXIAN_PORTAL_HOME || process.cwd()
-process.env.HOME = workingDirectory
+cwd = process.env.LIXIAN_PORTAL_HOME || process.cwd()
 
-queue.append = (task)->
-  @push task unless (@filter (t)->t.name==task.name).length
-queue.prepend = (task)->
-  @unshift task unless (@filter (t)->t.name==task.name).length
+retrieves = []
 
 exports.startCron = ->
   while true
-    if queue.length
-      stats.task = queue.shift()
-      log.unshift  "#{stats.task.name} 启动"
-      console.log log[log.length - 1]
-      await stats.task.func defer e
-      log.unshift "#{stats.task.name} 完成"
-      console.log log[log.length - 1]
-      if e
-        log.unshift e.message
-        console.error e.message
-
+    if retrieve = retrieves.shift()
+      await queue.execute 'retrieve', retrieve.task, retrieve.file, defer e
+      stats.retrieving = null
     await setTimeout defer(), 100
 
 exports.init = (cb)->
+  await lixian.init {}, defer e
+  return cb e if e
+  await fs.readFile (path.join cwd, '.lixian-portal.username'), 'utf8', defer e, username
+  await fs.readFile (path.join cwd, '.lixian-portal.password'), 'utf8', defer e, password
+  if username && password
+    console.log '正在尝试自动登录...'  
+    await queue.execute 'login', username, password, defer e
+    if e
+      console.error e.message
+    else
+      console.log '自动登录成功.'
   cb null
 
-getPythonBin = (cb)->
-  await exec 'which python2', cwd: workingDirectory, defer e
-  return cb null, 'python2' unless e
-  await exec 'python --version', cwd: workingDirectory, defer e, out, err
-  return cb e if e
-  return cb new Error "invalid Python version: #{err}. (Python 2.x needed)" unless err.match /Python[\s]+2\./
-  return cb null, 'python'
+stats.executings = []
+queue.execute = (command, args..., cb)=>
+  commands = 
+    retrieve: (task, file)-> "取回文件 #{task.name}/#{file.name}"
+    deleteTask: (id)-> "删除任务 #{id}"
+    updateTasklist: -> "刷新任务列表"
+    addTask: (url)-> "添加任务 #{url}"
+    addBtTask: (filename, torrent)-> "添加 BT 任务 #{filename}"
+    login: (username, password)-> "以 #{username} 登录"
+    logout: -> "登出"
+  command_name = commands[command] args...
+  log.unshift  "#{command_name} 启动"
+  console.log log[0]
+  stats.executings.push command_name
+  await queue.tasks[command] args..., defer e, results...
+  stats.executings.splice (stats.executings.indexOf command_name), 1
+  if e
+    log.unshift e.message
+    console.log log[0]
+    log.unshift "#{command_name} 失败"
+    console.log log[0]
+  else
+    log.unshift "#{command_name} 完成"
+    console.log log[0]
+  cb e, results...
+
+
 
 
 queue.tasks = 
-  retrieve: (task, cb)->
-    await getPythonBin defer e, pyothon_bin
+  retrieve: (task, file, cb)->
+    await mkdirp (path.join cwd, task.name), defer e
     return cb e if e
-    stats.retrieving = spawn pyothon_bin, [cli, 'download', '--continue', '--no-hash', task.id], stdio: 'pipe', cwd: workingDirectory
-    errBuffer = []
-    stats.retrieving.task = task
-    new lazy(stats.retrieving.stderr).lines.forEach (line)->
-      line ?= []
-      line = line.toString 'utf8'
-      errBuffer.push line
-      line = line.match /\s+(\d?\d%)\s+([^ ]{1,10})\s+([^ ]{1,10})\r?\n?$/
-      [dummy, stats.progress, stats.speed, stats.time] = line if line
-
-    await stats.retrieving.on 'exit', defer e
-    if e
-      stats.error[task.id] = errBuffer.join ''
-    stats.retrieving = null
-    queue.append
-      name: "刷新任务列表"
-      func: queue.tasks.updateTasklist
-    queue.append
-      name: "删除任务 #{task.id}"
-      func: (fcb)->
-        queue.tasks.deleteTask task.id, fcb
+    req = request
+      url: file.url
+      headers:
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+        'Cookie': stats.cookie
+        'Referer': 'http://dynamic.cloud.vip.xunlei.com/user_task'
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
+        'Accept-Language': 'zh-CN,zh;q=0.8,it-IT;q=0.6,it;q=0.4,en-US;q=0.2,en;q=0.2'
+      proxy: process.env['http_proxy']
+    writer = fs.createWriteStream path.join cwd, task.name, file.name
+    await req.on 'response', defer res
+    fileSize = Number res.headers['content-length']
+    return cb new Error "Invalid Content-Length" if isNaN fileSize
+    statusBar = StatusBar.create total: fileSize
+    statusBar.on 'render', (progress)->
+      stats.retrieving = 
+        req: req
+        progress: progress 
+        task: task
+        file: file
+        format: statusBar.format
+    req.pipe statusBar
+    req.pipe writer
+    await writer.on 'close', defer()
+    statusBar.cancel()
     cb()
   
-
   updateTasklist: (cb)->
-    await getPythonBin defer e, pyothon_bin
+    await lixian.list {}, defer e, data
     return cb e if e
-    await exec "#{pyothon_bin} #{cli} config encoding utf-8", cwd: workingDirectory, defer e
-    return cb e if e
-    await exec "#{pyothon_bin} #{cli} list --no-colors", cwd: workingDirectory, defer e, out, err
-    if e && err.match /user is not logged in|Verification code required/
-      stats.requireLogin = true
-      return cb e
-    return cb e if e
-    _tasks = []
-    if out.match regexMG 
-      for task in out.match regexMG
-        task = task.match regexQ
-        _tasks.push
-          id: task[1]
-          filename: task[2]
-          status: statusMap[task[3]]
-          statusLabel: statusMapLabel[task[3]]
-
-    stats.tasks = _tasks
-    
-    for task in _tasks
-      if task.status=='success' && !stats.error[task.id]?
-        queue.append
-          name: "取回 #{task.id}"
-          func: (fcb)->
-            queue.tasks.retrieve task, fcb
+    stats.cookie = data.cookie
+    stats.tasks = data.tasks
+    for task in stats.tasks
+      for file in task.files
+        file.status = 'warning'
+        file.statusLabel = '未就绪'
+        if file.url
+          file.status = 'success'
+          file.statusLabel = '就绪'
+          unless retrieves.filter((r)-> r.task.id == task.id && r.file.name == file.name).length
+            retrieves.push
+              task: task
+              file: file
     cb()
   deleteTask: (id, cb)->
-    await getPythonBin defer e, pyothon_bin
+    if stats.retrieving?.task.id == id
+      stats.retrieving.req.abort()
+    retrieves = retrieves.filter (retrieve)-> retrieve.task.id != id
+
+    await lixian.delete_task delete: id, defer e
     return cb e if e
-    await exec "#{pyothon_bin} #{cli} delete #{id}", cwd: workingDirectory, defer e, out, err
+    await queue.execute 'updateTasklist', defer e
     return cb e if e
-    queue.append
-      name: "刷新任务列表"
-      func: queue.tasks.updateTasklist
     cb null
 
-  login: (username, password, vcode, cb)->
-    await getPythonBin defer e, pyothon_bin
+  login: (username, password, cb)->
+    await lixian.login username: username, password: password, defer e
     return cb e if e
-    vcode_path = (path.join workingDirectory, ".lixian-portal-vcode.jpg")
-    if vcode and stats.login_process?
-      console.log "vcode: #{vcode}"
-      stats.login_process.stdin.write vcode
-      stats.login_process.stdin.write "\n"
-      await stats.login_process.on 'exit', defer code
-      @login_result = code
-    else
-      await fs.unlink vcode_path, defer e
-      @login_output = ""
-      stats.login_process = spawn pyothon_bin, [
-        cli
-        "login"
-        username
-        password
-        "--verification-code-path"
-        vcode_path
-      ], cwd: workingDirectory
-      stats.login_process.on 'exit', (code)=> 
-        @login_result = code
-        console.log "login exited #{@login_result}"
-        stats.login_process = null
-      stats.login_process.stdout.on 'data', (data)=> @login_output+= data.toString 'utf8' 
-      stats.login_process.stderr.on 'data', (data)=> @login_output+= data.toString 'utf8' 
-      stats.login_process.stdin.setEncoding 'utf8'
-      lixian_code_fetched = false
-      while stats.login_process && !lixian_code_fetched
-        await setTimeout defer(), 100 
-        await fs.exists vcode_path, defer lixian_code_fetched
-      if lixian_code_fetched
-        e = true
-        while e
-          await setTimeout defer(), 100
-          await fs.readFile vcode_path, 'base64', defer e, stats.requireVerificationCode
-        return cb null
-    if @login_result == 0
-      stats.requireLogin = false 
-      queue.append
-        name: "刷新任务列表"
-        func: queue.tasks.updateTasklist
-      cb null
-    else
-      console.error @login_output
-      @login_output = @login_output.match(/^[\w]+\:\s(.*)$/m)?[1]
-      @login_output = "用户名、密码或者验证码错误" if @login_output?.match /login failed/
-      cb new Error "登录失败: \n\n#{@login_output}"
+    await queue.execute 'updateTasklist', defer e
+    return cb e if e
+    await fs.writeFile (path.join cwd, '.lixian-portal.username'), username, 'utf8', defer e
+    await fs.writeFile (path.join cwd, '.lixian-portal.password'), password, 'utf8', defer e
+    stats.requireLogin = false
+    cb null
     
         
   logout: (cb)->
-    await getPythonBin defer e, pyothon_bin
-    return cb e if e
-    await exec "#{pyothon_bin} #{cli} logout", cwd: workingDirectory, defer e, out, err
-    await fs.unlink path.join(workingDirectory, '.xunlei.lixian.cookies'), defer e
+    await fs.unlink (path.join cwd, '.lixian-portal.username'), defer e
+    await fs.unlink (path.join cwd, '.lixian-portal.password'), defer e
     stats.requireLogin = true
     cb null
 
   addBtTask: (filename, torrent, cb)->
-    await getPythonBin defer e, pyothon_bin
+    await lixian.add_torrent torrent: torrent, defer e
     return cb e if e
-    await exec "#{pyothon_bin} #{cli} add #{torrent}", cwd: workingDirectory, defer e, out, err
-    return cb e if e
-    await queue.tasks.updateTasklist defer e
+    await queue.execute 'updateTasklist', defer e
     return cb e if e
     cb null
   addTask: (url, cb)->
-    await getPythonBin defer e, pyothon_bin
+    await lixian.add_url url: url, defer e
     return cb e if e
-    await exec "#{pyothon_bin} #{cli} add \"#{url}\"", cwd: workingDirectory, defer e, out, err
-    return cb e if e
-    await queue.tasks.updateTasklist defer e
+    await queue.execute 'updateTasklist', defer e
     return cb e if e
     cb null
 

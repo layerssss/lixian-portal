@@ -1,19 +1,21 @@
 {
   "name": "lixian-portal",
-  "version": "0.1.6",
+  "version": "0.2.0",
   "description": "lixian-portal =============",
   "dependencies": {
-    "iced-coffee-script": ">1.4.0",
     "express": "~3.1.0",
+    "iced-coffee-script": "1.6.3-b",
     "jade": "~0.28.2",
-    "lazy": "~1.0.9"
+    "mkdirp": "^0.5.0",
+    "node-lixian": "^1.0.5",
+    "request": "^2.44.0",
+    "status-bar": "^2.0.1"
   },
   "bin": {
     "lixian-portal": "./bin/lixian-portal"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "fetch-xunlei-lixian": "rm -Rf xunlei-lixian && mkdir xunlei-lixian && curl -L https://github.com/iambus/xunlei-lixian/archive/master.tar.gz | tar -xz --strip-component 1 -C xunlei-lixian",
     "start": "node index.js"
   },
   "main": "bin/lixian-portal",
@@ -23,6 +25,5 @@
   },
   "author": "Michael Yin",
   "license": "BSD",
-  "readmeFilename": "README.md",
-  "gitHead": "6bdc29c4643ed1bc9e540ad481e2693018f748c9"
+  "readmeFilename": "README.md"
 }

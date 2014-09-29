@@ -23,13 +23,6 @@ app.use express.methodOverride()
 
 client.startCron()
 queue = client.queue
-autorefresh = ->
-  queue.append
-    name: "刷新任务列表"
-    func: queue.tasks.updateTasklist
-  setTimeout autorefresh, 60000 * (1 + Math.random() * 3)
-autorefresh()
-
 
 app.get '/', (req, res, n)->
   return res.redirect '/login' if client.stats.requireLogin
@@ -43,22 +36,16 @@ app.all '*', (req, res, n)->
   ip = ip.split(',')[0].trim()
   return n 403 if process.env.ONLYFROM && -1 == process.env.ONLYFROM.indexOf ip
   n null
-app.post '/refresh', (req, res, n)->
-
-  queue.append
-    name: "刷新任务列表"
-    func: queue.tasks.updateTasklist
-  res.redirect 'back'
 
 app.post '/', (req, res, n)->
   if req.files && req.files.bt && req.files.bt.path && req.files.bt.length
     bt = req.files.bt
     await fs.rename bt.path, "#{bt.path}.torrent", defer e 
     return n e if e
-    await queue.tasks.addBtTask bt.name, "#{bt.path}.torrent", defer e
+    await queue.execute 'addBtTask', bt.name, "#{bt.path}.torrent", defer e
     return n e if e
-  else
-    await queue.tasks.addTask req.body.url, defer e
+  if req.body.url && req.body.url.length
+    await queue.execute 'addTask', req.body.url, defer e
     return n e if e
   res.redirect '/'
 
@@ -66,21 +53,17 @@ app.get '/login', (req, res)->
   res.locals.vcode = null
   res.render 'login'
 app.post '/login', (req, res, n)-> 
-  await queue.tasks.login req.body.username, req.body.password, req.body.vcode, defer e
+  await queue.execute 'login', req.body.username, req.body.password, defer e
   return n e if e
   res.redirect '/'
 app.get '/logout', (req, res, n)-> 
-  await queue.tasks.logout defer e
+  await queue.execute 'logout', defer e
   return n e if e
   res.redirect '/'
 
 app.delete '/tasks/:id', (req, res, n)->
-  if client.stats.retrieving?.task.id
-    client.stats.retrieving.kill()
-  queue.append
-    name: "删除任务 #{task.id}"
-    func: (fcb)->
-      queue.tasks.deleteTask req.params.id, fcb
+  await queue.execute 'deleteTask', req.params.id, defer e
+  return cb e if e
   res.redirect '/'
         
 
@@ -89,6 +72,11 @@ app.use (e, req, res, next)->
     error: e
 await client.init defer e
 throw e if e
+
+autorefresh = ->
+  await queue.execute 'updateTasklist', defer(e)
+  setTimeout autorefresh, 60000 * (1 + Math.random() * 3)
+autorefresh()
 
 port = process.env.PORT || 3000
 if isNaN Number port

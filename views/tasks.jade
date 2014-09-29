@@ -1,11 +1,30 @@
 extends layout
 block content
+  script.
+    $(function(){
+      var fn = function(){
+        $.get('.', function(data){
+          $('#stats').html($('#stats', data).html());
+          $('#tasks').html($('#tasks', data).html());
+          $('#queue').html($('#queue', data).html());
+          $('#log').html($('#log', data).html());
+          setTimeout(fn, 500);  
+        });
+      };
+      fn();
+    });
+  #stats
+    if info.stats.executings.length
+      h6 正在进行任务： 
+      ul
+        for executing in info.stats.executings
+          li #{executing} 
+
+    if info.stats.retrieving
+      h6 取回速度: #{info.stats.retrieving.format.speed(info.stats.retrieving.progress.speed)}
   form.form-inline(method='post',action='/', enctype='multipart/form-data',style='margin-bottom: 0.5em;')
     .pull-right
       .btn-group
-        a.btn.btn-info(href='/') 
-          i.icon-refresh
-          |刷新
         a.btn.btn-danger(href='/logout') 
           i.icon-signout
           |登出
@@ -20,32 +39,34 @@ block content
     label
       input(name='bt',type='checkbox',accept='*/torrent',onclick='$(".url").toggle()')
       | BT任务
-  table.table
+  table.table#tasks
     tr
+      th
       th 任务状态
       th 取回状态
       th 文件名
       th 操作
     for task in info.stats.tasks
-      tr(class=task.status)
-        td=task.statusLabel
+      tr
+        td(colspan=4) #{task.name}
         td
-          if info.stats.retrieving && info.stats.retrieving.task.id == task.id
-            .label.label-info 正在取回(#{info.stats.progress} 预计剩余时间：#{info.stats.time})
-          if info.stats.error[task.id]
-            .label.label-error(title=info.stats.error[task.id]) 错误
-        td=task.filename
-        td
-          .btn-toolbar(style='margin:0;')
-            .btn-group
-              a.btn-mini.btn.btn-danger(href='/tasks/#{task.id}?_method=delete') 删除
+          a.btn-xs.btn.btn-inline.btn-danger(href='/tasks/#{task.id}?_method=delete') 删除
+      for file in task.files
+        tr(class=file.status)
+          td
+          td=file.statusLabel
+          td
+            if info.stats.retrieving && info.stats.retrieving.file.url == file.url
+              .label.label-info 正在取回(#{info.stats.retrieving.format.storage(info.stats.retrieving.progress.currentSize)}, #{info.stats.retrieving.format.percentage(info.stats.retrieving.progress.percentage)} 预计剩余时间：#{info.stats.retrieving.format.time(info.stats.retrieving.progress.remainingTime)})
+          td #{file.name}
+          td
   #accordion2.panel-group
     .panel.panel-default
       .panel-heading
         .panel-title
-          a.accordion-toggle(data-toggle='collapse', data-parent='#accordion2', href='#collapseOne')
+          a.accordion-toggle(data-toggle='collapse', data-parent='#accordion2', href='#queue')
             | 任务队列
-      #collapseOne.panel-body.collapse.in
+      #queue.panel-body.collapse.in
         .panel-inner
           ul
             for item in info.queue
@@ -53,8 +74,8 @@ block content
     .panel.panel-default
       .panel-heading
         .panel-title
-          a.accordion-toggle(data-toggle='collapse', data-parent='#accordion2', href='#collapseTwo')
+          a.accordion-toggle(data-toggle='collapse', data-parent='#accordion2', href='#log')
             | 任务日志
-      #collapseTwo.panel-body.collapse
+      #log.panel-body.collapse
         .panel-inner
           pre=info.log.join('\n')

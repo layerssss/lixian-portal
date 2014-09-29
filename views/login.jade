@@ -12,7 +12,7 @@ block content
       .form-group
         input.form-control(name='vcode',type='text',placeholder='验证码')
       .form-group
-        img(src="data:image/jpeg;base64,#{info.stats.requireVerificationCode}")
+        img(src=info.stats.requireVerificationCode)
     .form-group
       button.btn.btn-primary(type='submit') 
         i.icon-signin
