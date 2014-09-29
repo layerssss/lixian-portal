@@ -107,6 +107,9 @@ queue.tasks =
     req.pipe writer
     await writer.on 'close', defer()
     statusBar.cancel()
+
+    await queue.execute 'deleteTask', task.id, defer e
+    
     cb()
   
   updateTasklist: (cb)->
