@@ -64,6 +64,8 @@ queue.execute = (command, args..., cb)=>
   await queue.tasks[command] args..., defer e, results...
   stats.executings.splice (stats.executings.indexOf command_name), 1
   if e
+    if e.message.match /you must login first/i
+      stats.requireLogin = true
     log.unshift e.message
     console.log log[0]
     log.unshift "#{command_name} 失败"
