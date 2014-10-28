@@ -85,38 +85,42 @@ queue.tasks =
     await mkdirp (path.join cwd, task.name), defer e
     return cb e if e
     for file in task.files
-      req = request
-        url: file.url
-        headers:
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-          'Cookie': stats.cookie
-          'Referer': 'http://dynamic.cloud.vip.xunlei.com/user_task'
-          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
-          'Accept-Language': 'zh-CN,zh;q=0.8,it-IT;q=0.6,it;q=0.4,en-US;q=0.2,en;q=0.2'
-        proxy: process.env['http_proxy']
-      dest_path = path.join cwd, task.name, file.name.replace /[\/\\]/g, path.sep
-      await mkdirp (path.dirname dest_path), defer e
-      return cb e if e
-      writer = fs.createWriteStream dest_path
-      await req.on 'response', defer res
-      fileSize = Number res.headers['content-length']
-      return cb new Error "Invalid Content-Length" if isNaN fileSize
-      statusBar = StatusBar.create total: fileSize
-      statusBar.on 'render', (progress)->
-        stats.retrieving = 
-          req: req
-          progress: progress 
-          task: task
-          file: file
-          format: statusBar.format
-      req.pipe statusBar
-      req.pipe writer
-      await writer.on 'close', defer()
-      statusBar.cancel()
-      return cb new Error '任务已删除' if req._aborted
-      await fs.stat dest_path, defer e, dest_stats 
-      return cb e if e
-      return cb new Error "文件大小不符 #{dest_stats.size} != #{fileSize}" unless dest_stats.size == fileSize
+      tried = 0
+      while true
+        dest_path = path.join cwd, task.name, file.name.replace /[\/\\]/g, path.sep
+        await fs.stat dest_path, defer e, dest_stats 
+        break if dest_stats?.size == fileSize
+        return cb new Error "下载文件“#{file.name}”失败" if tried >= 3
+
+        req = request
+          url: file.url
+          headers:
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+            'Cookie': stats.cookie
+            'Referer': 'http://dynamic.cloud.vip.xunlei.com/user_task'
+            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
+            'Accept-Language': 'zh-CN,zh;q=0.8,it-IT;q=0.6,it;q=0.4,en-US;q=0.2,en;q=0.2'
+          proxy: process.env['http_proxy']
+        await mkdirp (path.dirname dest_path), defer e
+        return cb e if e
+        writer = fs.createWriteStream dest_path
+        await req.on 'response', defer res
+        fileSize = Number res.headers['content-length']
+        return cb new Error "Invalid Content-Length" if isNaN fileSize
+        statusBar = StatusBar.create total: fileSize
+        statusBar.on 'render', (progress)->
+          stats.retrieving = 
+            req: req
+            progress: progress 
+            task: task
+            file: file
+            format: statusBar.format
+        req.pipe statusBar
+        req.pipe writer
+        await writer.on 'close', defer()
+        statusBar.cancel()
+        return cb new Error '任务已删除' if req._aborted
+        tried += 1
 
     await queue.execute 'deleteTask', task.id, defer e
     
