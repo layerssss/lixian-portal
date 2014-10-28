@@ -122,15 +122,19 @@ queue.tasks =
     stats.cookie = data.cookie
     stats.tasks = data.tasks
     for task in stats.tasks
+      task.finished = true
       for file in task.files
         file.status = 'warning'
         file.statusLabel = '未就绪'
         if file.url
           file.status = 'success'
           file.statusLabel = '就绪'
-          unless stats.retrieves.filter((r)-> r.task.id == task.id).length
-            stats.retrieves.push
-              task: task
+        else
+          task.finished = false
+      if task.finished
+        unless stats.retrieves.filter((r)-> r.task.id == task.id).length
+          stats.retrieves.push
+            task: task
     cb()
   deleteTask: (id, cb)->
     if stats.retrieving?.task.id == id
