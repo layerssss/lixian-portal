@@ -9,7 +9,7 @@
     "mkdirp": "^0.5.0",
     "node-lixian": "^1.0.10",
     "request": "^2.44.0",
-    "status-bar": "^2.0.1"
+    "status-bar": "git+https://github.com/gagle/node-status-bar.git#b732cdabb9711aff128ae9c805a642fd2a671ce3"
   },
   "bin": {
     "lixian-portal": "./bin/lixian-portal"
