@@ -39,10 +39,7 @@ app.post '/vcode', (req, res, n)->
   vcodeReqs.shift().cb null, req.body.vcode
   res.end ''
 
-
 app.get '/', (req, res, n)->
-  res.render 'frame'
-app.get '/iframe', (req, res, n)->
   return res.redirect '/login' if client.stats.requireLogin
   while client.log.length > 100
     client.log.pop()

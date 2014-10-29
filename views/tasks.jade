@@ -1,18 +1,6 @@
 extends layout
 block content
   script.
-    $(function(){
-      var fn = function(){
-        $.get('', function(data){
-          $('#stats').html($('#stats', data).html());
-          $('#tasks').html($('#tasks', data).html());
-          $('#queue').html($('#queue', data).html());
-          $('#log').html($('#log', data).html());
-          setTimeout(fn, 500);  
-        });
-      };
-      fn();
-    });
   #stats
     if info.stats.executings.length
       h6 正在进行任务： 

@@ -30,7 +30,7 @@ cwd = process.env.LIXIAN_PORTAL_HOME || process.cwd()
 exports.startCron = ->
   while true
     if retrieve = stats.retrieves.shift()
-      await queue.execute 'retrieve', retrieve.task, defer e
+      await queue.execute 'retrieve', retrieve.task, retrieve.file, defer e
       stats.retrieving = null
     await setTimeout defer(), 100
 
@@ -52,7 +52,7 @@ stats.executings = []
 queue.lixian = lixian
 queue.execute = (command, args..., cb)=>
   commands = 
-    retrieve: (task)-> "取回任务 #{task.name}"
+    retrieve: (task, file)-> "取回文件 #{task.name}/#{file.name}"
     deleteTask: (id)-> "删除任务 #{id}"
     updateTasklist: -> "刷新任务列表"
     addTask: (url)-> "添加任务 #{url}"
@@ -81,49 +81,40 @@ queue.execute = (command, args..., cb)=>
 
 
 queue.tasks = 
-  retrieve: (task, cb)->
+  retrieve: (task, file, cb)->
     await mkdirp (path.join cwd, task.name), defer e
     return cb e if e
-    for file in task.files
-      tried = 0
-      while true
-        dest_path = path.join cwd, task.name, file.name.replace /[\/\\]/g, path.sep
-        await fs.stat dest_path, defer e, dest_stats 
-        break if dest_stats?.size == fileSize
-        return cb new Error "下载文件“#{file.name}”失败" if tried >= 3
-
-        req = request
-          url: file.url
-          headers:
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
-            'Cookie': stats.cookie
-            'Referer': 'http://dynamic.cloud.vip.xunlei.com/user_task'
-            'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
-            'Accept-Language': 'zh-CN,zh;q=0.8,it-IT;q=0.6,it;q=0.4,en-US;q=0.2,en;q=0.2'
-          proxy: process.env['http_proxy']
-        await mkdirp (path.dirname dest_path), defer e
-        return cb e if e
-        writer = fs.createWriteStream dest_path
-        await req.on 'response', defer res
-        fileSize = Number res.headers['content-length']
-        return cb new Error "Invalid Content-Length" if isNaN fileSize
-        statusBar = StatusBar.create total: fileSize
-        statusBar.on 'render', (progress)->
-          stats.retrieving = 
-            req: req
-            progress: progress 
-            task: task
-            file: file
-            format: statusBar.format
-        req.pipe statusBar
-        req.pipe writer
-        await writer.on 'close', defer()
-        statusBar.cancel()
-        return cb new Error '任务已删除' if req._aborted
-        tried += 1
-
-    await queue.execute 'deleteTask', task.id, defer e
     
+    await fs.stat file.dest_path, defer e, dest_stats 
+    unless dest_stats?.size == file.size
+      req = request
+        url: file.url
+        headers:
+          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8'
+          'Cookie': stats.cookie
+          'Referer': 'http://dynamic.cloud.vip.xunlei.com/user_task'
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
+          'Accept-Language': 'zh-CN,zh;q=0.8,it-IT;q=0.6,it;q=0.4,en-US;q=0.2,en;q=0.2'
+        proxy: process.env['http_proxy']
+      await mkdirp (path.dirname file.dest_path), defer e
+      return cb e if e
+      writer = fs.createWriteStream file.dest_path
+      statusBar = StatusBar.create total: file.size
+      statusBar.on 'render', (progress)->
+        stats.retrieving = 
+          req: req
+          progress: progress 
+          task: task
+          file: file
+          format: statusBar.format
+      req.pipe statusBar
+      req.pipe writer
+      await writer.on 'close', defer()
+      statusBar.cancel()
+      return cb new Error '任务已删除' if req._aborted
+    
+    await queue.execute 'updateTasklist', defer e
+    return cb e if e
     cb()
   
   updateTasklist: (cb)->
@@ -136,15 +127,26 @@ queue.tasks =
       for file in task.files
         file.status = 'warning'
         file.statusLabel = '未就绪'
+        file.dest_path = path.join cwd, task.name, file.name.replace /[\/\\]/g, path.sep
+        file.finished = false
         if file.url
           file.status = 'success'
           file.statusLabel = '就绪'
+          if stats.retrieves.filter((r)-> r.task.id == task.id && r.file.name == file.name).length
+            task.finished = false
+          else
+            await fs.stat file.dest_path, defer e, dest_stats 
+            if dest_stats?.size == file.size
+              file.finished = true
+            else
+              task.finished = false
+              stats.retrieves.push
+                task: task
+                file: file
         else
           task.finished = false
       if task.finished
-        unless stats.retrieves.filter((r)-> r.task.id == task.id).length
-          stats.retrieves.push
-            task: task
+        queue.execute 'deleteTask', task.id, ->
     cb()
   deleteTask: (id, cb)->
     if stats.retrieving?.task.id == id
