@@ -7,9 +7,9 @@
     "iced-coffee-script": "1.6.3-b",
     "jade": "~0.28.2",
     "mkdirp": "^0.5.0",
-    "node-lixian": "^1.0.10",
+    "node-lixian": "^1.0.12",
     "request": "^2.44.0",
-    "status-bar": "git+https://github.com/gagle/node-status-bar.git#b732cdabb9711aff128ae9c805a642fd2a671ce3"
+    "status-bar": "^2.0.1"
   },
   "bin": {
     "lixian-portal": "./bin/lixian-portal"

@@ -35,7 +35,7 @@ exports.startCron = ->
     await setTimeout defer(), 100
 
 exports.init = (cb)->
-  await lixian.init {}, defer e
+  await lixian.init weakref: false, defer e
   return cb e if e
   await fs.readFile (path.join cwd, '.lixian-portal.username'), 'utf8', defer e, username
   await fs.readFile (path.join cwd, '.lixian-portal.password'), 'utf8', defer e, password
