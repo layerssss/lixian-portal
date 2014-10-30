@@ -14,7 +14,7 @@ exports.stats = stats =
   error: {}
   speed: 'NaN'
   tasks: []
-  requireLogin: false
+  requireLogin: true
   requireVerificationCode: false
   password: ''
   username: ''
@@ -118,6 +118,7 @@ queue.tasks =
     cb()
   
   updateTasklist: (cb)->
+    return cb new Error '未登录' if stats.requireLogin
     await lixian.list {}, defer e, data
     return cb e if e
     stats.cookie = data.cookie
@@ -162,15 +163,17 @@ queue.tasks =
   login: (username, password, cb)->
     await lixian.login username: username, password: password, defer e
     return cb e if e
+    stats.requireLogin = false
     await queue.execute 'updateTasklist', defer e
     return cb e if e
     await fs.writeFile (path.join cwd, '.lixian-portal.username'), username, 'utf8', defer e
     await fs.writeFile (path.join cwd, '.lixian-portal.password'), password, 'utf8', defer e
-    stats.requireLogin = false
     cb null
     
         
   logout: (cb)->
+    stats.retrieves = []
+    stats.retrieving?.req.abort()
     await fs.unlink (path.join cwd, '.lixian-portal.username'), defer e
     await fs.unlink (path.join cwd, '.lixian-portal.password'), defer e
     stats.requireLogin = true

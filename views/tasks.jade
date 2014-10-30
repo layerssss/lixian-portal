@@ -9,42 +9,33 @@ block content
           li #{executing} 
     if info.stats.retrieving
       h6 取回速度: #{info.stats.retrieving.format.speed(info.stats.retrieving.progress.speed)}
-  form.form-inline(method='post',action='/', enctype='multipart/form-data',style='margin-bottom: 0.5em;')
-    .pull-right
-      .btn-group
-        a.btn.btn-danger(href='/logout') 
-          |登出
-    .form-group.url
-      input.form-control.input-xxlarge(name='url',type='text',placeholder='url')
-    .form-group.url(style='display: none;')
-      input(name='bt',type='file',placeholder='.torrent')
-    .form-group
-      button.btn.btn-primary(type='submit') 
-        |添加
-    label
-      input(name='bt',type='checkbox',accept='*/torrent',onclick='$(".url").toggle()')
-      | BT任务
   table.table#tasks
-    tr
-      th
-      th 任务状态
-      th 取回状态
-      th 文件名
-      th 操作
-    for task in info.stats.tasks
+    thead
       tr
-        td(colspan=4) #{task.name}
-        td
-          a.btn-xs.btn.btn-inline.btn-danger(href='/tasks/#{task.id}?_method=delete') 删除
-      for file in task.files
-        tr(class=file.status)
-          td
-          td=file.statusLabel
-          td
-            if info.stats.retrieving && info.stats.retrieving.file.url == file.url
-              .label.label-info 正在取回(#{info.stats.retrieving.format.storage(info.stats.retrieving.progress.currentSize)}, #{info.stats.retrieving.format.percentage(info.stats.retrieving.progress.percentage)} 预计剩余时间：#{info.stats.retrieving.format.time(info.stats.retrieving.progress.remainingTime)})
-          td #{file.name}
-          td
+        th
+        th 文件名
+        th 文件大小
+        th 任务状态
+        th 取回状态
+        th 操作
+    tbody
+      for task in info.stats.tasks
+        tr
+          td.td-task-name(colspan=5) #{task.name}
+          td.td-task-actions
+            a.btn-xs.btn.btn-inline.btn-danger(href='/tasks/#{task.id}?_method=delete') 删除
+        for file in task.files
+          tr(class=file.status)
+            td
+            td.td-file-name #{file.name}
+            td.td-file-size #{filesize(file.size)}
+            td.td-file-status=file.statusLabel
+            td.td-file-retrieving
+              if info.stats.retrieving && info.stats.retrieving.file.url == file.url
+                |正在取回(#{info.stats.retrieving.format.storage(info.stats.retrieving.progress.currentSize)}, #{info.stats.retrieving.format.percentage(info.stats.retrieving.progress.percentage)} 预计剩余时间：#{info.stats.retrieving.format.time(info.stats.retrieving.progress.remainingTime)})
+              else
+                = file.finished? '已取回' : '未开始取回'
+            td
   #accordion2.panel-group
     .panel.panel-default
       .panel-heading

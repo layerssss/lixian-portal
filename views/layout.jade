@@ -2,9 +2,64 @@
 html
   head
     meta(charset='utf8')
-    meta(content="width=device-width, initial-scale=1.0",name="viewport")
+    meta(content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no",name="viewport")
     title lixian
     link(href='http://cdn.staticfile.org/twitter-bootstrap/3.2.0/css/bootstrap.min.css',rel='stylesheet')
+    style.
+      body{
+        padding-top: 60px;
+      }
+      footer{
+        margin-top: 3em;
+      }
+      #stats{
+        position: fixed;
+        z-index: 2;
+        bottom: 0;
+        right: 0;
+        width: 50%;
+        min-width: 20em;
+        background-color: rgba(255, 255, 255, 0.8);
+        padding: .3em 1em;
+        border: solid 1px #999;
+        border-style: solid none none solid;
+        border-radius: 1em 0 0 0;
+      }
+      @media 
+        only screen and (max-width: 760px),
+        (min-device-width: 768px) and (max-device-width: 1024px)  {
+        table, thead, tbody, th, td, tr{
+          display: block;
+        }
+        thead tr{
+          position: absolute;
+          top: -9999px;
+          left: -9999px;
+        }
+        td{
+          padding-left: 30% !important;
+          position: relative;
+          display: none;
+        }
+        td:before{
+          position: absolute;
+          left: .5em;
+          width: 25%;
+          white-space: nowrap;
+        }
+        td.td-task-name{ display: block; }
+        td.td-task-name:before{ content: '任务名称'; }
+        td.td-task-actions{ display: block; }
+        td.td-task-actions:before{ content: '任务操作'; }
+        td.td-file-status{ display: block; }
+        td.td-file-status:before{ content: '文件状态'; }
+        td.td-file-retrieving{ display: block; }
+        td.td-file-retrieving:before{ content: '文件取回'; }
+        td.td-file-name{ display: block; }
+        td.td-file-name:before{ content: '文件名'; }
+        td.td-file-size{ display: block; }
+        td.td-file-size:before{ content: '文件大小'; }
+      }
     script(src='http://cdn.staticfile.org/jquery/2.1.1-rc2/jquery.min.js')
     script(src='http://cdn.staticfile.org/twitter-bootstrap/3.2.0/js/bootstrap.min.js')
     script.
@@ -65,10 +120,30 @@ html
             input(placeholder='请输入验证码', name='vcode')
           .modal-footer
             button.btn.btn-default(type='button', onclick='$(this).closest("form").submit();') 确定
+    .navbar.navbar-default.navbar-fixed-top(role='navigation')
+      .container
+        .navbar-header
+          button.navbar-toggle.collapsed(type='button', data-toggle='collapse', data-target='.navbar-collapse')
+            span.sr-only 导航
+            span.icon-bar
+            span.icon-bar
+            span.icon-bar
+          a.navbar-brand(href='.') lixian-portal
+        .collapse.navbar-collapse
+          unless info.stats.requireLogin
+            ul.nav.navbar-nav
+              li(class=active_tab == 'tasks' ? 'active' : '')
+                a(href='.') 任务列表
+            form.navbar-form.navbar-left(method='post',action='.', enctype='multipart/form-data', style='position: relative;')
+              .form-group
+                input.form-control#url(name='url', type='text', placeholder='http/ftp/ed2k/magnet')
+                input.form-control#bt(name='bt', multiple=true, type='file', accept='*/torrent', style='opacity: 0; position: absolute; z-index: -1; top: 0;')
+              button.btn.btn-primary(type='submit') 添加任务
+              button.btn.btn-default(type='button', onclick='$("#url").val("");$("#bt").on("change", function(){$(this).closest("form").submit();}).click();') 添加BT任务
+            ul.nav.navbar-nav.navbar-right
+              li
+                a(href='logout') 登出
     .container
-      h1 lixian... 
-      .row
-        .col-lg-12
-          block content
+      block content
       footer
         a(href='https://github.com/layerssss/lixian-portal', target='_blank') lixian-portal by mic

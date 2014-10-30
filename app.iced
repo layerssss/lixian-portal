@@ -12,6 +12,8 @@ client = require './client'
 app = express favicon: false
 app.locals.info = client = require './client'
 app.locals.pretty = true
+app.locals.filesize = require 'filesize'
+app.locals.active_tab = 'unknown'
 app.set 'view engine', 'jade'
 app.set 'views', path.join __dirname, 'views'
 app.use express.bodyParser()
@@ -43,7 +45,7 @@ app.get '/', (req, res, n)->
   return res.redirect '/login' if client.stats.requireLogin
   while client.log.length > 100
     client.log.pop()
-  res.render 'tasks'
+  res.render 'tasks', active_tab: 'tasks'
 
 app.all '*', (req, res, n)->
   return n null if req.method is 'GET'
