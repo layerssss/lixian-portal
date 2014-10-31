@@ -14,7 +14,7 @@ block content
       for file in files
         if file.isDirectory
           tr
-            td(colspan=4) 
+            td.td-folder-name(colspan=4) 
               a(href="?path=#{encodeURIComponent(file.path)}") #{file.name}
     thead
       tr
@@ -26,12 +26,12 @@ block content
       for file in files
         unless file.isDirectory
           tr
-            td 
+            td.td-file-name 
               if file.isFile
                 a(href='browse/#{encodeURI(file.path)}')
                   |#{file.name}
               else
                 |#{file.name}
-            td #{filesize(file.size)}
-            td #{moment(file.mtime).format('LLL')}
-            td #{moment(file.atime).format('LLL')}
+            td.td-file-size #{filesize(file.size)}
+            td.td-file-mtime #{moment(file.mtime).format('LLL')}
+            td.td-file-atime #{moment(file.atime).format('LLL')}
