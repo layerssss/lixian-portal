@@ -23,7 +23,7 @@ stats.retrieves = []
 exports.log = log = []
 exports.queue = queue = {}
 
-cwd = process.env.LIXIAN_PORTAL_HOME || process.cwd()
+exports.cwd = cwd = process.env.LIXIAN_PORTAL_HOME || process.cwd()
 
 
 

@@ -12,6 +12,9 @@ html
       footer{
         margin-top: 3em;
       }
+      .breadcrumb .active a, .breadcrumb :hover a{
+        opacity: .5;
+      }
       #stats{
         position: fixed;
         z-index: 2;
@@ -94,17 +97,6 @@ html
           });
         };
         fn();
-        var fn_2 = function(){
-          $.get('').done(function(data){
-            $('#stats').html($('#stats', data).html());
-            $('#tasks').html($('#tasks', data).html());
-            $('#queue').html($('#queue', data).html());
-            $('#log').html($('#log', data).html());
-          }).always(function(){
-            setTimeout(fn_2, 500);
-          });
-        };
-        fn_2();
       });
   body
     form.modal.fade.vcode-template
@@ -130,16 +122,14 @@ html
             span.icon-bar
           a.navbar-brand(href='.') lixian-portal
         .collapse.navbar-collapse
+          ul.nav.navbar-nav
+            li(class=active_tab == 'tasks' ? 'active' : '')
+              a(href='.') 任务列表
+            li(class=active_tab == 'new_task' ? 'active' : '')
+              a(href='new_task') 新建任务
+            li(class=active_tab == 'browse' ? 'active' : '')
+              a(href='browse') 取回的文件
           unless info.stats.requireLogin
-            ul.nav.navbar-nav
-              li(class=active_tab == 'tasks' ? 'active' : '')
-                a(href='.') 任务列表
-            form.navbar-form.navbar-left(method='post',action='.', enctype='multipart/form-data', style='position: relative;')
-              .form-group
-                input.form-control#url(name='url', type='text', placeholder='http/ftp/ed2k/magnet')
-                input.form-control#bt(name='bt', multiple=true, type='file', accept='*/torrent', style='opacity: 0; position: absolute; z-index: -1; top: 0;')
-              button.btn.btn-primary(type='submit') 添加任务
-              button.btn.btn-default(type='button', onclick='$("#url").val("");$("#bt").on("change", function(){$(this).closest("form").submit();}).click();') 添加BT任务
             ul.nav.navbar-nav.navbar-right
               li
                 a(href='logout') 登出

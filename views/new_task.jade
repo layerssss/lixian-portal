@@ -1,0 +1,20 @@
+extends layout
+block content
+  .panel.panel-default
+    .panel-heading
+      .panel-title 通过链接添加任务
+    .panel-body
+      .panel-inner
+        form(method='post',action='.', enctype='multipart/form-data', style='position: relative;')
+          .form-group
+            input.form-control#url(name='url', type='text', placeholder='链接：支持 http / ftp / ed2k / magnet 协议')
+          button.btn.btn-primary.btn-block(type='submit') 添加任务
+
+  .panel.panel-default
+    .panel-heading
+      .panel-title 通过BT种子添加任务
+    .panel-body
+      .panel-inner
+        form(method='post',action='.', enctype='multipart/form-data', style='position: relative;')
+          input.form-control#bt(name='bt', multiple=true, type='file', accept='*/torrent', style='opacity: 0; position: absolute; z-index: -1; top: 0;')
+          button.btn.btn-default.btn-block(type='button', onclick='$("#url").val("");$("#bt").on("change", function(){$(this).closest("form").submit();}).click();') 选取BT种子

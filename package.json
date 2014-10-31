@@ -8,6 +8,7 @@
     "iced-coffee-script": "1.6.3-b",
     "jade": "~0.28.2",
     "mkdirp": "^0.5.0",
+    "moment": "^2.8.3",
     "node-lixian": "^1.0.19",
     "request": "^2.44.0",
     "status-bar": "https://github.com/gagle/node-status-bar/archive/b732cdabb9711aff128ae9c805a642fd2a671ce3.tar.gz"

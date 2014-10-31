@@ -2,6 +2,7 @@ express = require 'express'
 http = require 'http'
 path = require 'path'
 fs = require 'fs'
+moment = require 'moment'
 client = require './client'
 {
   exec
@@ -9,13 +10,17 @@ client = require './client'
   spawn
 } = require 'child_process'
 
+moment.locale 'zh-cn'
+
 app = express favicon: false
 app.locals.info = client = require './client'
 app.locals.pretty = true
 app.locals.filesize = require 'filesize'
+app.locals.moment = moment
 app.locals.active_tab = 'unknown'
 app.set 'view engine', 'jade'
 app.set 'views', path.join __dirname, 'views'
+app.use '/browse', express.static client.cwd
 app.use express.bodyParser()
 app.use (req, res, next)->
   req.body[k] = v for k, v of req.query
@@ -37,9 +42,6 @@ queue.lixian.vcodeHandler = (vcodeData, cb)->
 app.get '/vcode', (req, res, n)->
   return res.end '' unless vcodeReqs[0]
   res.end vcodeReqs[0].data
-app.post '/vcode', (req, res, n)->
-  vcodeReqs.shift().cb null, req.body.vcode
-  res.end ''
 
 app.get '/', (req, res, n)->
   return res.redirect '/login' if client.stats.requireLogin
@@ -47,12 +49,51 @@ app.get '/', (req, res, n)->
     client.log.pop()
   res.render 'tasks', active_tab: 'tasks'
 
+app.get '/new_task', (req, res, n)->
+  return res.redirect '/login' if client.stats.requireLogin
+  res.render 'new_task', active_tab: 'new_task'
+
+app.get '/browse', (req, res, n)->
+  req.query.path ?= ''
+  dirpath = path.resolve client.cwd, req.query.path
+  return n 403 unless 0 == dirpath.indexOf client.cwd
+  await fs.readdir dirpath, defer e, files 
+  return n e if e
+  res.locals.files = []
+  res.locals.path = req.query.path
+  for file in files
+    continue if file.match /^\./
+    await fs.stat path.join(dirpath, file), defer e, stats
+    return n e if e
+    res.locals.files.push 
+      name: file
+      path: path.join(req.query.path, file)
+      isFile: stats.isFile()
+      isDirectory: stats.isDirectory()
+      size: stats.size
+      mtime: stats.mtime
+      atime: stats.atime
+  segs = req.query.path.split '/'
+  segs = segs.filter (s)-> s != ''
+  res.locals.parents = []
+  for seg, i in segs
+    res.locals.parents.push
+      name: seg
+      path: segs[0..i].join path.sep
+  res.render 'browse', 
+    active_tab: 'browse'
+
+
 app.all '*', (req, res, n)->
   return n null if req.method is 'GET'
   ip = req.header('x-forwarded-for') || req.connection.remoteAddress
   ip = ip.split(',')[0].trim()
   return n 403 if process.env.ONLYFROM && -1 == process.env.ONLYFROM.indexOf ip
   n null
+
+app.post '/vcode', (req, res, n)->
+  vcodeReqs.shift()?.cb null, req.body.vcode
+  res.end ''
 
 app.post '/', (req, res, n)->
   if req.files && req.files.bt && req.files.bt.path && req.files.bt.length

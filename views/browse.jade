@@ -1,0 +1,37 @@
+extends layout
+block content
+  ol.breadcrumb
+    li(class=parents.length ? '' : 'active')
+      a(href='?path=') 取回的文件
+    for parent, i in parents
+      li(class=i==parents.length - 1 ? 'active' : '')
+        a(href="?path=#{encodeURIComponent(parent.path)}") #{parent.name}
+  table.table.table-condensed
+    thead
+      tr
+        th(colspan=4) 目录名
+    tbody
+      for file in files
+        if file.isDirectory
+          tr
+            td(colspan=4) 
+              a(href="?path=#{encodeURIComponent(file.path)}") #{file.name}
+    thead
+      tr
+        th 文件名
+        th 尺寸
+        th 最后修改
+        th 最后访问
+    tbody.table.table-condensed
+      for file in files
+        unless file.isDirectory
+          tr
+            td 
+              if file.isFile
+                a(href='browse/#{encodeURI(file.path)}')
+                  |#{file.name}
+              else
+                |#{file.name}
+            td #{filesize(file.size)}
+            td #{moment(file.mtime).format('LLL')}
+            td #{moment(file.atime).format('LLL')}
