@@ -121,7 +121,7 @@ app.get '/logout', (req, res, n)->
 
 app.delete '/tasks/:id', (req, res, n)->
   await queue.execute 'deleteTask', req.params.id, defer e
-  return cb e if e
+  return n e if e
   res.redirect '/'
         
 
