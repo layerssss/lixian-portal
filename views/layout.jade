@@ -31,6 +31,9 @@ html
       @media 
         only screen and (max-width: 760px),
         (min-device-width: 768px) and (max-device-width: 1024px)  {
+        *{
+          word-wrap: break-word !important;
+        }
         table, thead, tbody, th, td, tr{
           display: block;
         }
@@ -43,7 +46,6 @@ html
           padding-left: 30% !important;
           position: relative;
           display: none;
-          word-wrap: break-word;
         }
         td:before{
           position: absolute;
