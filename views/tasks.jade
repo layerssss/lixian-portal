@@ -60,7 +60,7 @@ block content
         .panel-inner
           ul
             for retrieve in info.stats.retrieves
-              li=retrieve.task.name
+              li #{retrieve.task.name}/#{retrieve.file.name}
     .panel.panel-default
       .panel-heading
         .panel-title

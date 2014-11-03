@@ -109,7 +109,7 @@ queue.tasks =
           format: statusBar.format
       req.pipe statusBar
       req.pipe writer
-      await writer.on 'close', defer()
+      await writer.on 'finish', defer()
       statusBar.cancel()
       return cb new Error '任务已删除' if req._aborted
     
@@ -147,7 +147,9 @@ queue.tasks =
         else
           task.finished = false
       if task.finished
-        queue.execute 'deleteTask', task.id, ->
+        await queue.execute 'deleteTask', task.id, defer e
+        return cb e if e
+
     cb()
   deleteTask: (id, cb)->
     if stats.retrieving?.task.id == id
