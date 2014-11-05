@@ -1,6 +1,6 @@
 {
   "name": "lixian-portal",
-  "version": "0.2.17",
+  "version": "0.3.5",
   "description": "lixian-portal =============",
   "dependencies": {
     "express": "~3.1.0",
@@ -9,7 +9,7 @@
     "jade": "~0.28.2",
     "mkdirp": "^0.5.0",
     "moment": "^2.8.3",
-    "node-lixian": "^1.0.20",
+    "node-lixian": "^2.0.4",
     "request": "^2.44.0",
     "status-bar": "^2.0.2"
   },

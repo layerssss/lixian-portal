@@ -36,7 +36,7 @@ client.startCron()
 queue = client.queue
 queue.lixian.vcodeHandler = (vcodeData, cb)->
   vcodeReqs.push 
-    data: vcodeData
+    data: "data:image/jpeg;base64,#{vcodeData.toString 'base64'}"
     cb: cb
 
 app.get '/vcode', (req, res, n)->

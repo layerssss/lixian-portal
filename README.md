@@ -24,7 +24,6 @@ lixian-portal
 # 环境
 
 * [NodeJS](http://nodejs.org/)
-* [PhantomJS](http://phantomjs.org/)
 
 # 安装方法
 

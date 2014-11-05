@@ -35,11 +35,15 @@ exports.startCron = ->
     await setTimeout defer(), 100
 
 exports.init = (cb)->
-  await lixian.init weakref: false, defer e
+  await fs.readFile (path.join cwd, '.lixian-portal.cookies'), 'utf8', defer e, cookie
+  try
+    cookie = JSON.parse cookie
+  
+  await lixian.init cookie: cookie, defer e
   return cb e if e
   await fs.readFile (path.join cwd, '.lixian-portal.username'), 'utf8', defer e, username
   await fs.readFile (path.join cwd, '.lixian-portal.password'), 'utf8', defer e, password
-  if username && password
+  if (stats.requireLogin = !lixian.logon) && username && password
     console.log '正在尝试自动登录...'  
     await queue.execute 'login', username, password, defer e
     if e
@@ -65,8 +69,9 @@ queue.execute = (command, args..., cb)=>
   stats.executings.push command_name
   await queue.tasks[command] args..., defer e, results...
   stats.executings.splice (stats.executings.indexOf command_name), 1
+  stats.requireLogin = !lixian.logon
   if e
-    if e.message.match /you must login first/i
+    if e.message.match /重新登录/i
       stats.requireLogin = true
     log.unshift e.message
     console.log log[0]
@@ -86,7 +91,10 @@ queue.tasks =
     return cb e if e
     
     await fs.stat file.dest_path, defer e, dest_stats 
-    unless dest_stats?.size == file.size
+    if dest_stats?.size == file.size
+      console.log "已存在 #{file.dest_path} 取回取消"
+    else
+      console.log "正在取回 #{file.dest_path}..."
       req = request
         url: file.url
         headers:
@@ -98,6 +106,7 @@ queue.tasks =
         proxy: process.env['http_proxy']
       await mkdirp (path.dirname file.dest_path), defer e
       return cb e if e
+      await req.on 'response', defer res
       writer = fs.createWriteStream file.dest_path
       statusBar = StatusBar.create total: file.size
       statusBar.on 'render', (progress)->
@@ -165,7 +174,7 @@ queue.tasks =
   login: (username, password, cb)->
     await lixian.login username: username, password: password, defer e
     return cb e if e
-    stats.requireLogin = false
+    stats.requireLogin = !lixian.logon
     await queue.execute 'updateTasklist', defer e
     return cb e if e
     await fs.writeFile (path.join cwd, '.lixian-portal.username'), username, 'utf8', defer e
@@ -178,7 +187,12 @@ queue.tasks =
     stats.retrieving?.req.abort()
     await fs.unlink (path.join cwd, '.lixian-portal.username'), defer e
     await fs.unlink (path.join cwd, '.lixian-portal.password'), defer e
-    stats.requireLogin = true
+
+    await lixian.init {}, defer e
+    return cb if e
+
+    stats.requireLogin = !lixian.logon
+    
     cb null
 
   addBtTask: (filename, torrent, cb)->
