@@ -145,7 +145,7 @@ queue.tasks =
           await fs.stat file.dest_path, defer e, dest_stats 
           file.finished = dest_stats?.size == file.size
             
-          if stats.retrieves.filter((r)-> r.task.id == task.id && r.file.name == file.name).length
+          if (stats.retrieving?.task.id == task.id && stats.retrieving?.file.name == file.name) || stats.retrieves.filter((r)-> r.task.id == task.id && r.file.name == file.name).length
             task.finished = false
           else
             if !file.finished
