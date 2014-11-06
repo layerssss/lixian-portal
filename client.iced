@@ -142,13 +142,13 @@ queue.tasks =
         if file.url
           file.status = 'success'
           file.statusLabel = '就绪'
+          await fs.stat file.dest_path, defer e, dest_stats 
+          file.finished = dest_stats?.size == file.size
+            
           if stats.retrieves.filter((r)-> r.task.id == task.id && r.file.name == file.name).length
             task.finished = false
           else
-            await fs.stat file.dest_path, defer e, dest_stats 
-            if dest_stats?.size == file.size
-              file.finished = true
-            else
+            if !file.finished
               task.finished = false
               stats.retrieves.push
                 task: task
