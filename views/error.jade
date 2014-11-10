@@ -6,4 +6,4 @@ block content
       = error.message
     else
       |#{error.stderr}; #{error.stdout}
-    a.btn.btn-primary(href='.') 返回
+    a.btn.btn-primary(href='#', onclick='history.go(-1)') 返回
