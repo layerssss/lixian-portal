@@ -4,6 +4,7 @@ path = require 'path'
 fs = require 'fs'
 moment = require 'moment'
 client = require './client'
+
 {
   exec
   execFile
@@ -18,6 +19,7 @@ app.locals.pretty = true
 app.locals.filesize = require 'filesize'
 app.locals.moment = moment
 app.locals.active_tab = 'unknown'
+app.locals.version = require('./package').version
 app.set 'view engine', 'jade'
 app.set 'views', path.join __dirname, 'views'
 app.use '/browse', express.static client.cwd

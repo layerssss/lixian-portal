@@ -106,8 +106,9 @@ html
           });
         };
         fn();
+        var version = $('body').data('lixian-portal-version');
       });
-  body
+  body(data-lixian-portal-version=version)
     form.modal.fade.vcode-template
       .modal-dialog
         .modal-content
@@ -145,4 +146,4 @@ html
     .container
       block content
       footer
-        a(href='https://github.com/layerssss/lixian-portal', target='_blank') lixian-portal by mic
+        a(href='https://github.com/layerssss/lixian-portal', target='_blank') lixian-portal #{version}
