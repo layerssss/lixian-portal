@@ -137,7 +137,10 @@ queue.tasks =
       for file in task.files
         file.status = 'warning'
         file.statusLabel = '未就绪'
-        file.dest_path = path.join cwd, task.name, file.name.replace /[\/\\]/g, path.sep
+        if task.name == file.name
+          file.dest_path = path.join cwd, file.name
+        else
+          file.dest_path = path.join cwd, task.name, file.name.replace /[\/\\]/g, path.sep
         file.finished = false
         if file.url
           file.status = 'success'
