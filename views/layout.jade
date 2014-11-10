@@ -12,6 +12,10 @@ html
       footer{
         margin-top: 3em;
       }
+      footer img{
+        vertical-align: middle;
+        margin: -3px 0 0 5px
+      }
       .breadcrumb .active a, .breadcrumb :hover a{
         opacity: .5;
       }
@@ -145,3 +149,26 @@ html
       block content
       footer
         a(href='https://github.com/layerssss/lixian-portal', target='_blank') lixian-portal #{version}
+        a(href='#',data-toggle="modal", data-target="#myModal")
+          img(title='最新版本',src='https://badge.fury.io/js/lixian-portal.svg') 
+        #myModal.modal.fade(tabindex='-1', role='dialog', aria-labelledby='myModalLabel', aria-hidden='true')
+          .modal-dialog
+            .modal-content
+              .modal-header
+                button.close(type='button', data-dismiss='modal')
+                  span(aria-hidden='true') ×
+                  span.sr-only Close
+                h4#myModalLabel.modal-title 怎样更新
+              .modal-body
+                ol
+                  li 
+                    p 使用 npm 进行更新：
+                    pre
+                      code
+                        |npm update lixian-portal -g
+                  li 然后重新启动 lixian-portal
+              .modal-footer
+                a.btn.btn-default(href='https://github.com/layerssss/lixian-portal/commits', target='_blank')
+                    |查看更新的内容
+                button.btn.btn-primary(type='button', data-dismiss='modal') 我知道了
+
