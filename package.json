@@ -1,6 +1,6 @@
 {
   "name": "lixian-portal",
-  "version": "0.3.5",
+  "version": "0.3.6",
   "description": "lixian-portal =============",
   "dependencies": {
     "express": "~3.1.0",
