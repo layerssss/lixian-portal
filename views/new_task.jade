@@ -19,4 +19,4 @@ block content
         form(method='post',action='.', enctype='multipart/form-data', style='position: relative;')
           input(type='hidden', name='_csrf', value=csrfToken)
           input.form-control#bt(name='bt', multiple=true, type='file', accept='*/torrent', style='opacity: 0; position: absolute; z-index: -1; top: 0;')
-          button.btn.btn-default.btn-block(type='button', onclick='$("#url").val("");$("#bt").on("change", function(){$(this).closest("form").submit();}).click();') 选取BT种子
+          button.btn.btn-default.btn-block(type='button', onclick='$("#url, #bt").val("");$("#bt").on("change", function(){$(this).closest("form").submit();}).click();') 选取BT种子
