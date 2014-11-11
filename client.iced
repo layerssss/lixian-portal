@@ -117,7 +117,9 @@ queue.tasks =
       req.pipe writer
       await writer.on 'finish', defer()
       statusBar.cancel()
-      return cb new Error '任务已删除' if req._aborted
+      if req._aborted
+        stats.retrieving = null
+        return cb new Error '任务已删除' 
     stats.retrieving = null
     
     await queue.execute 'updateTasklist', defer e

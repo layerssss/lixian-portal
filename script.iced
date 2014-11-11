@@ -51,7 +51,7 @@ while true
     tasks.exit().each -> $(@).fadeOut -> $(@).remove()
     tasks.each (task, i)->
       $(@).find('.task-name').text_update task.name
-      $(@).find('.task-delete').attr href: "/tasks/#{task.id}?_method=delete"
+      $(@).find('.task-delete').attr href: "/tasks/#{task.id}"
       $(@).find('.task-toggler').attr href: "#task#{task.id}"
       $(@).find('.task-togglee').attr id: "task#{task.id}"
       $(@).find('.task-progressbar')

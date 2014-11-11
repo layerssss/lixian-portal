@@ -1,6 +1,7 @@
 extends layout
 block content
   form(method='post',action='/login',role='form')
+    input(type='hidden', name='_csrf', value=csrfToken)
     if !info.stats.login_process
       .form-group
         label 用户名:

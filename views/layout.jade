@@ -3,6 +3,8 @@ html
   head
     meta(charset='utf8')
     meta(content="width=device-width,initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=no",name="viewport")
+    meta(name='csrf-token', content=typeof(csrfToken)=='undefined'?null:csrfToken)
+    meta(name='csrf-param', content='_csrf')
     title lixian
     
     link(href='//cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.0/lumen/bootstrap.css',rel='stylesheet')
@@ -93,13 +95,14 @@ html
     script(src='//cdnjs.cloudflare.com/ajax/libs/async/0.9.0/async.js')
     script(src='//cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js')
     script(src='script.js')
+    script(src='jquery-ujs.js')
     script#task_template(type='text/html')
       .panel.panel-default
         .panel-heading(role='tab')
           .pull-right
             .progress(style='float: left; width: 100px; margin: 2px 10px;')
               .progress-bar.progress-bar-success.progress-bar-striped.task-progressbar(style='width: 0%;')
-            a.btn-xs.btn.btn-inline.btn-danger.task-delete 取消任务
+            a.btn-xs.btn.btn-inline.btn-danger.task-delete(data-method='delete') 取消任务
           h4.panel-title
             a.task-toggler(data-toggle='collapse', aria-expanded='true')
               span.task-name
@@ -158,8 +161,11 @@ html
           unless info.stats.requireLogin
             ul.nav.navbar-nav.navbar-right
               li
-                a(href='logout') 登出
+                a(href='logout', data-method='post') 登出
     .container
+      noscript
+        .alert.alert-danger
+          |该程序需要您的浏览器支持 JavaScript 方可运行。
       block content
       footer
         a(href='https://github.com/layerssss/lixian-portal', target='_blank') lixian-portal #{version}

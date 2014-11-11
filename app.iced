@@ -23,12 +23,15 @@ app.locals.active_tab = 'unknown'
 app.locals.version = require('./package').version
 app.set 'view engine', 'jade'
 app.set 'views', path.join __dirname, 'views'
-app.use '/browse', express.static client.cwd
+app.set 'strict routing', true
+app.use '/files', express.static client.cwd
 app.use express.bodyParser()
-app.use (req, res, next)->
-  req.body[k] = v for k, v of req.query
-  next()
 app.use express.methodOverride()
+app.use express.cookieParser()
+app.use express.cookieSession 
+  key: 'lixian-portal.session'
+  secret: "lixian-portal.#{Math.random()}"
+app.use express.csrf()
 
 vcodeReqs = []
 
@@ -41,6 +44,10 @@ queue.lixian.vcodeHandler = (vcodeData, cb)->
   vcodeReqs.push 
     data: "data:image/jpeg;base64,#{vcodeData.toString 'base64'}"
     cb: cb
+
+app.use (req, res, n)->
+  res.locals.csrfToken = req.csrfToken()
+  n null
 
 app.get '/stats.json', (req, res, n)->
   for task in client.stats.tasks
@@ -67,15 +74,25 @@ app.get '/stats.json', (req, res, n)->
       eta: client.stats.retrieving.progress.remainingTime
   res.json data
 
-app.get '/script.js', (req, res, n)->
-  await fs.readFile path.join(__dirname, 'script.iced'), 'utf8', defer e, script
-  return n e if e
-  try
-    script = icedcoffeescript.compile script, runtime: 'window'
-  catch e 
-    return n e
-  res.end script
+await fs.readFile path.join(__dirname, 'script.iced'), 'utf8', defer e, script
+throw e if e
+app.locals.script = icedcoffeescript.compile script, runtime: 'window'
 
+app.get '/script.js', (req, res, n)->
+  if process.env.DEBUG
+    await fs.readFile path.join(__dirname, 'script.iced'), 'utf8', defer e, script
+    return n e if e
+    try
+      console.log 'recompiling script...'
+      app.locals.script = icedcoffeescript.compile script, runtime: 'window'
+    catch e 
+      return n e
+  res.end app.locals.script
+
+app.get '/jquery-ujs.js', (req, res, n)->
+  await fs.readFile path.join(__dirname, 'jquery-ujs.js'), defer e, data
+  return n e if e
+  res.end data
 
 app.get '/', (req, res, n)->
   return res.redirect '/login' if client.stats.requireLogin
@@ -117,20 +134,12 @@ app.get '/browse', (req, res, n)->
   res.render 'browse', 
     active_tab: 'browse'
 
-
-app.all '*', (req, res, n)->
-  return n null if req.method is 'GET'
-  ip = req.header('x-forwarded-for') || req.connection.remoteAddress
-  ip = ip.split(',')[0].trim()
-  return n 403 if process.env.ONLYFROM && -1 == process.env.ONLYFROM.indexOf ip
-  n null
-
 app.post '/vcode', (req, res, n)->
   vcodeReqs.shift()?.cb null, req.body.vcode
   res.end ''
 
 app.post '/', (req, res, n)->
-  if req.files && req.files.bt && req.files.bt.path && req.files.bt.length
+  if req.files && req.files.bt && req.files.bt.path && req.files.bt.size
     bt = req.files.bt
     await fs.rename bt.path, "#{bt.path}.torrent", defer e 
     return n e if e
@@ -148,7 +157,7 @@ app.post '/login', (req, res, n)->
   await queue.execute 'login', req.body.username, req.body.password, defer e
   return n e if e
   res.redirect '/'
-app.get '/logout', (req, res, n)-> 
+app.post '/logout', (req, res, n)-> 
   await queue.execute 'logout', defer e
   return n e if e
   res.redirect '/'

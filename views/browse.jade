@@ -28,7 +28,7 @@ block content
           tr
             td.td-file-name 
               if file.isFile
-                a(href='browse/#{encodeURI(file.path)}')
+                a(href='files/#{encodeURI(file.path)}')
                   |#{file.name}
               else
                 |#{file.name}
