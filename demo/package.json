@@ -1,0 +1,17 @@
+{
+  "name": "demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node_modules/.bin/iced demo.iced"
+  },
+  "dependencies": {
+    "express": "~3.18.3",
+    "request": "^2.44.0",
+    "iced-coffee-script": "1.6.3-b"
+  },
+  "author": "Michael Yin",
+  "license": "MIT"
+}
