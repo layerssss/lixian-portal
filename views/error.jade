@@ -1,9 +1,0 @@
-extends layout
-block content
-  .alert.alert-warning
-    h1 操作失败⋯⋯
-    if error.message
-      = error.message
-    else
-      |#{error.stderr}; #{error.stdout}
-    a.btn.btn-primary(href='#', onclick='history.go(-1); return false;') 返回
