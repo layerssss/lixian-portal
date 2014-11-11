@@ -16,10 +16,12 @@ lixian-portal
 
 # 界面预览
 
-![qq20140929-1](https://cloud.githubusercontent.com/assets/1559832/4437710/10a2f2d4-479e-11e4-888f-eae2f34b5bff.png)
+[查看运行在 Michael Yin 家里的一个 lixian-portal 演示实例](http://lixian-demo.micy.in/)
 
-![qq20140929-2](https://cloud.githubusercontent.com/assets/1559832/4437711/1110e618-479e-11e4-8885-b28024c6864d.png)
-
+![2014-11-11 10 04 47](https://cloud.githubusercontent.com/assets/1559832/4993993/482d3fe8-69ef-11e4-80b4-8d2fc251af5a.png)
+![2014-11-11 10 06 34](https://cloud.githubusercontent.com/assets/1559832/4993977/26ee4cdc-69ef-11e4-9832-20cbf521e9b8.png)
+![2014-11-11 10 06 25](https://cloud.githubusercontent.com/assets/1559832/4993978/271f3b44-69ef-11e4-989c-54aba6506f70.png)
+![2014-11-11 10 06 43](https://cloud.githubusercontent.com/assets/1559832/4993975/2676fe66-69ef-11e4-82ea-25884a2644a3.png)
 
 # 环境
 
@@ -31,6 +33,7 @@ lixian-portal
 * 运行命令启动：`lixian-portal`
 * 下载的位置为启动这个程序的目录(Current Working Directory)
 * 如需下载到其他位置，可以设置环境变量`LIXIAN_PORTAL_HOME`，例如：可以这样启动程序`LIXIAN_PORTAL_HOME=/mnt/sdb1 lixian-portal`
+* 可以使用环境变量`PORT`设置程序监听的端口，默认为`3000`
 
 # Tricks
 
