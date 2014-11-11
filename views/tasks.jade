@@ -1,66 +1,8 @@
 extends layout
 block content
   script.
-    $(function(){
-      var fn_2 = function(){
-        $.get('.').done(function(data){
-          $('#stats').html($('#stats', data).html());
-          $('#tasks').html($('#tasks', data).html());
-          $('#queue').html($('#queue', data).html());
-          $('#log').html($('#log', data).html());
-        }).always(function(){
-          setTimeout(fn_2, 500);
-        });
-      };
-      fn_2();
-    });
-
-  #stats
-    if info.stats.executings.length
-      h6 正在进行任务： 
-      ul
-        for executing in info.stats.executings
-          li #{executing} 
-    if info.stats.retrieving
-      h6 取回速度: #{info.stats.retrieving.format.speed(info.stats.retrieving.progress.speed)}
-  table.table#tasks
-    thead
-      tr
-        th
-        th 文件名
-        th 文件大小
-        th 任务状态
-        th 取回状态
-        th 操作
-    tbody
-      for task in info.stats.tasks
-        tr
-          td.td-task-name(colspan=5) #{task.name}
-          td.td-task-actions
-            a.btn-xs.btn.btn-inline.btn-danger(href='/tasks/#{task.id}?_method=delete') 删除
-        for file in task.files
-          tr(class=file.status)
-            td
-            td.td-file-name #{file.name}
-            td.td-file-size #{filesize(file.size)}
-            td.td-file-status=file.statusLabel
-            td.td-file-retrieving
-              if info.stats.retrieving && info.stats.retrieving.file.url == file.url
-                |正在取回(#{info.stats.retrieving.format.storage(info.stats.retrieving.progress.currentSize)}, #{info.stats.retrieving.format.percentage(info.stats.retrieving.progress.percentage)} 预计剩余时间：#{info.stats.retrieving.format.time(info.stats.retrieving.progress.remainingTime)})
-              else
-                = file.finished? '已取回' : '未开始取回'
-            td
-  #accordion2.panel-group
-    .panel.panel-default
-      .panel-heading
-        .panel-title
-          a.accordion-toggle(data-toggle='collapse', data-parent='#accordion2', href='#queue')
-            | 任务队列
-      #queue.panel-body.collapse.in
-        .panel-inner
-          ul
-            for retrieve in info.stats.retrieves
-              li #{retrieve.task.name}/#{retrieve.file.name}
+  #tasks
+  #accordion-log.panel-group
     .panel.panel-default
       .panel-heading
         .panel-title

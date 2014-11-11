@@ -3,6 +3,7 @@ http = require 'http'
 path = require 'path'
 fs = require 'fs'
 moment = require 'moment'
+icedcoffeescript = require('iced-coffee-script')
 client = require './client'
 
 {
@@ -16,8 +17,8 @@ moment.locale 'zh-cn'
 app = express favicon: false
 app.locals.info = client = require './client'
 app.locals.pretty = true
-app.locals.filesize = require 'filesize'
 app.locals.moment = moment
+app.locals.filesize = require 'filesize'
 app.locals.active_tab = 'unknown'
 app.locals.version = require('./package').version
 app.set 'view engine', 'jade'
@@ -41,9 +42,43 @@ queue.lixian.vcodeHandler = (vcodeData, cb)->
     data: "data:image/jpeg;base64,#{vcodeData.toString 'base64'}"
     cb: cb
 
-app.get '/vcode', (req, res, n)->
+app.get '/stats.json', (req, res, n)->
+  for task in client.stats.tasks
+    task.total = 0
+    task.fetched = 0
+    for file in task.files
+      file.retrieving = client.stats.retrieving?.task.id == task.id && client.stats.retrieving?.file.name == file.name 
+
+      task.total += file.size
+      if file.finished
+        task.fetched += file.size
+      else if file.retrieving
+        task.fetched += client.stats.retrieving.progress.currentSize
+    task.progress = task.fetched * 100 / task.total
+  data = 
+    vcode: vcodeReqs[0]?.data
+    executings: client.stats.executings
+    tasks: client.stats.tasks
+  if client.stats.retrieving?.progress
+    data.progress = 
+      speed: client.stats.retrieving.progress.speed
+      progress: client.stats.retrieving.progress.percentage
+      fetched: client.stats.retrieving.progress.currentSize
+      eta: client.stats.retrieving.progress.remainingTime
+  res.json data
+
   return res.end '' unless vcodeReqs[0]
-  res.end vcodeReqs[0].data
+  res.end 
+
+app.get '/script.js', (req, res, n)->
+  await fs.readFile path.join(__dirname, 'script.iced'), 'utf8', defer e, script
+  return n e if e
+  try
+    script = icedcoffeescript.compile script, runtime: 'window'
+  catch e 
+    return n e
+  res.end script
+
 
 app.get '/', (req, res, n)->
   return res.redirect '/login' if client.stats.requireLogin

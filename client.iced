@@ -3,6 +3,7 @@ path = require 'path'
 fs = require 'fs'
 mkdirp = require 'mkdirp'
 request = require 'request'
+filesize = require 'filesize'
 StatusBar = require 'status-bar'
 
 Lixian = require 'node-lixian'
@@ -31,7 +32,6 @@ exports.startCron = ->
   while true
     if retrieve = stats.retrieves.shift()
       await queue.execute 'retrieve', retrieve.task, retrieve.file, defer e
-      stats.retrieving = null
     await setTimeout defer(), 100
 
 exports.init = (cb)->
@@ -87,9 +87,6 @@ queue.execute = (command, args..., cb)=>
 
 queue.tasks = 
   retrieve: (task, file, cb)->
-    await mkdirp (path.join cwd, task.name), defer e
-    return cb e if e
-    
     await fs.stat file.dest_path, defer e, dest_stats 
     if dest_stats?.size == file.size
       console.log "已存在 #{file.dest_path} 取回取消"
@@ -104,22 +101,23 @@ queue.tasks =
           'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_9_5) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/37.0.2062.124 Safari/537.36'
           'Accept-Language': 'zh-CN,zh;q=0.8,it-IT;q=0.6,it;q=0.4,en-US;q=0.2,en;q=0.2'
         proxy: process.env['http_proxy']
+      req.on 'error', cb
       await mkdirp (path.dirname file.dest_path), defer e
       return cb e if e
       await req.on 'response', defer res
+      stats.retrieving = 
+          req: req
+          task: task
+          file: file
       writer = fs.createWriteStream file.dest_path
       statusBar = StatusBar.create total: file.size
       statusBar.on 'render', (progress)->
-        stats.retrieving = 
-          req: req
-          progress: progress 
-          task: task
-          file: file
-          format: statusBar.format
+        stats.retrieving.progress = progress 
       req.pipe statusBar
       req.pipe writer
       await writer.on 'finish', defer()
       statusBar.cancel()
+      stats.retrieving = null
       return cb new Error '任务已删除' if req._aborted
     
     await queue.execute 'updateTasklist', defer e
@@ -135,20 +133,20 @@ queue.tasks =
     for task in stats.tasks
       task.finished = true
       for file in task.files
-        file.status = 'warning'
-        file.statusLabel = '未就绪'
+        task.total += file.size
         if task.name == file.name
           file.dest_path = path.join cwd, file.name
         else
           file.dest_path = path.join cwd, task.name, file.name.replace /[\/\\]/g, path.sep
         file.finished = false
         if file.url
-          file.status = 'success'
-          file.statusLabel = '就绪'
           await fs.stat file.dest_path, defer e, dest_stats 
           file.finished = dest_stats?.size == file.size
-            
-          if (stats.retrieving?.task.id == task.id && stats.retrieving?.file.name == file.name) || stats.retrieves.filter((r)-> r.task.id == task.id && r.file.name == file.name).length
+          if file.finished
+            stats.retrieves = stats.retrieves.filter((r)-> r.task.id != task.id || r.file.name != file.name)
+          if stats.retrieving?.task.id == task.id && stats.retrieving?.file.name == file.name
+            task.finished = false
+          else if stats.retrieves.filter((r)-> r.task.id == task.id && r.file.name == file.name).length
             task.finished = false
           else
             if !file.finished
@@ -158,6 +156,7 @@ queue.tasks =
                 file: file
         else
           task.finished = false
+
       if task.finished
         await queue.execute 'deleteTask', task.id, defer e
         return cb e if e
