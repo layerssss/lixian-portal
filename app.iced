@@ -52,7 +52,7 @@ app.get '/stats.json', (req, res, n)->
       task.total += file.size
       if file.finished
         task.fetched += file.size
-      else if file.retrieving
+      else if file.retrieving && client.stats.retrieving?.progress
         task.fetched += client.stats.retrieving.progress.currentSize
     task.progress = task.fetched * 100 / task.total
   data = 
