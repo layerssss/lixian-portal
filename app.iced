@@ -67,9 +67,6 @@ app.get '/stats.json', (req, res, n)->
       eta: client.stats.retrieving.progress.remainingTime
   res.json data
 
-  return res.end '' unless vcodeReqs[0]
-  res.end 
-
 app.get '/script.js', (req, res, n)->
   await fs.readFile path.join(__dirname, 'script.iced'), 'utf8', defer e, script
   return n e if e
