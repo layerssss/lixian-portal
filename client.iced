@@ -140,7 +140,9 @@ queue.tasks =
           file.dest_path = path.join cwd, task.name, file.name.replace /[\/\\]/g, path.sep
         file.finished = false
         if file.url
-          await fs.stat file.dest_path, defer e, dest_stats 
+          dest_stats = null
+          try
+            dest_stats = fs.statSync file.dest_path
           file.finished = dest_stats?.size == file.size
           if file.finished
             stats.retrieves = stats.retrieves.filter((r)-> r.task.id != task.id || r.file.name != file.name)
