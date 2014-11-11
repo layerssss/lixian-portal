@@ -31,7 +31,7 @@ for path in [
     """ if type?.match /^text\/html/
     res.end data
 app.all '*', (req, res, n)->
-  res.set 'Content-Type', 'text/html'
+  res.set 'Content-Type', 'text/html; charset=utf-8'
   res.end """
   <script>
   alert("这个功能在演示程序里不能使用，请将 lixian-portal 部署在您自己的计算机上使用。");
