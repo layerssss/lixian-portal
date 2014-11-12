@@ -1,6 +1,5 @@
 #!/usr/bin/env sh
 ':' //; exec "$(command -v nodejs || command -v node)" "$0" "$@"
 
-console.log('Hello world!');
 require('iced-coffee-script');
 require('../app.iced');
