@@ -129,7 +129,7 @@ html
       p 正在进行的任务：
       .executings
     form.modal.fade.vcode-template
-      input(type='hidden', name='_csrf', value=csrfToken)
+      input(type='hidden', name='_csrf', value=typeof(csrfToken)=='undefined'?null:csrfToken)
       .modal-dialog
         .modal-content
           .modal-header
