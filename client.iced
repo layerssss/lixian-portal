@@ -54,6 +54,11 @@ exports.init = (cb)->
 
 stats.executings = []
 queue.lixian = lixian
+execute_log = []
+lixian.on 'debug', (prefix, data)->
+  execute_log.push 
+    prefix: prefix
+    data: data
 queue.execute = (command, args..., cb)=>
   commands = 
     retrieve: (task, file)-> "取回文件 #{task.name}/#{file.name}"
@@ -67,10 +72,17 @@ queue.execute = (command, args..., cb)=>
   log.unshift  "#{command_name} 启动"
   console.log log[0]
   stats.executings.push command_name
+  execute_log = []
   await queue.tasks[command] args..., defer e, results...
   stats.executings.splice (stats.executings.indexOf command_name), 1
   stats.requireLogin = !lixian.logon
   if e
+    e.extra = execute_log.map ({prefix, data})->
+      data = JSON.stringify data, null, ' ' unless data?.constructor is String
+      data.split('\n').map (line)->
+        "#{prefix}> #{line}\n"
+      .join('')
+    .join('-------------\n')
     if e.message.match /重新登录/i
       stats.requireLogin = true
     log.unshift e.message

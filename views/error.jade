@@ -2,8 +2,13 @@ extends layout
 block content
   .alert.alert-warning
     h1 操作失败⋯⋯
-    if error.message
-      = error.message
-    else
-      |#{error.stderr}; #{error.stdout}
-    a.btn.btn-primary(href='#', onclick='history.go(-1); return false;') 返回
+    p= error.message
+    p
+      .btn-group
+        a.btn.btn-primary(href='#', onclick='history.go(-1); return false;') 返回
+      if error.extra
+        .btn-group
+          a.btn.btn-info(href='#extra', data-toggle="collapse") 查看详细日志
+    p.collapse
+      #extra
+        pre=error.extra
