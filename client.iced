@@ -78,10 +78,14 @@ queue.execute = (command, args..., cb)=>
   stats.requireLogin = !lixian.logon
   if e
     e.extra = execute_log.map ({prefix, data})->
-      data = JSON.stringify data, null, ' ' unless data?.constructor is String
-      data.split('\n').map (line)->
-        "#{prefix}> #{line}\n"
-      .join('')
+      try
+        message = JSON.stringify data, null, ' ' unless data?.constructor is String
+        return (message||'undefined').split('\n').map (line)->
+          "#{prefix}> #{line}\n"
+        .join('')
+      catch e
+        console.error e.message
+        return String data
     .join('-------------\n')
     if e.message.match /重新登录/i
       stats.requireLogin = true
