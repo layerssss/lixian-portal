@@ -25,6 +25,7 @@ app.set 'view engine', 'jade'
 app.set 'views', path.join __dirname, 'views'
 app.set 'strict routing', true
 app.use '/files', express.static client.cwd
+app.use '/assets', express.static path.join __dirname, 'assets'
 app.use express.bodyParser()
 app.use express.methodOverride()
 app.use express.cookieParser()
@@ -88,11 +89,6 @@ app.get '/script.js', (req, res, n)->
     catch e 
       return n e
   res.end app.locals.script
-
-app.get '/jquery-ujs.js', (req, res, n)->
-  await fs.readFile path.join(__dirname, 'jquery-ujs.js'), defer e, data
-  return n e if e
-  res.end data
 
 app.get '/', (req, res, n)->
   return res.redirect '/login' if client.stats.requireLogin

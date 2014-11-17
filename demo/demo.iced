@@ -12,7 +12,12 @@ app = express favicon: false
 for path in [
   "/"
   "/script.js"
-  "/jquery-ujs.js"
+  "/assets/async.js"
+  "/assets/bootstrap.min.css"
+  "/assets/bootstrap.min.js"
+  "/assets/d3.min.js"
+  "/assets/jquery-ujs.js"
+  "/assets/jquery.min.js"
   "/stats.json"
   "/new_task"
   "/browse"

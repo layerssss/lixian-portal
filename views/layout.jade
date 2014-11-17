@@ -7,7 +7,7 @@ html
     meta(name='csrf-param', content='_csrf')
     title lixian
     
-    link(href='//cdnjs.cloudflare.com/ajax/libs/bootswatch/3.3.0/lumen/bootstrap.css',rel='stylesheet')
+    link(href='assets/bootstrap.min.css',rel='stylesheet')
     style.
       body{
         padding-top: 60px;
@@ -90,12 +90,12 @@ html
         td.td-folder-name{ display: block; }
         td.td-folder-name:before{ content: '目录名'; }
       }
-    script(src='//cdn.staticfile.org/jquery/2.1.1-rc2/jquery.min.js')
-    script(src='//cdn.staticfile.org/twitter-bootstrap/3.2.0/js/bootstrap.min.js')
-    script(src='//cdnjs.cloudflare.com/ajax/libs/async/0.9.0/async.js')
-    script(src='//cdnjs.cloudflare.com/ajax/libs/d3/3.4.13/d3.min.js')
+    script(src='assets/jquery.min.js')
+    script(src='assets/bootstrap.min.js')
+    script(src='assets/async.js')
+    script(src='assets/d3.min.js')
+    script(src='assets/jquery-ujs.js')
     script(src='script.js')
-    script(src='jquery-ujs.js')
     script#task_template(type='text/html')
       .panel.panel-default
         .panel-heading(role='tab')
